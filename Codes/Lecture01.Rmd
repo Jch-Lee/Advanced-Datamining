@@ -1,0 +1,603 @@
+---
+title: "Lecture 1 0912"
+author: "JongCheolLee"
+date: "2024-09-02"
+output: html_document
+---
+
+### Data1
+
+```{r}
+## Open the dataset linked to the book website
+url.ad <- "https://www.statlearning.com/s/Advertising.csv"
+Advertising <- read.csv(url.ad, h=T)
+attach(Advertising)
+```
+
+* attach() 함수는 R에서 데이터 프레임이나 리스트와 같은 객체를 검색 경로에 추가하여, 해당 객체의 변수들을 별도의 명시적인 객체 참조 없이 바로 접근할 수 있게 해주는 기능을 제공
+
+```{r}
+head(Advertising)
+```
+
+```{r}
+summary(Advertising)
+```
+
+```{r}
+## Least square fit for simple linear regression
+par(mfrow = c(1,3))
+plot(sales~TV, col=2, xlab="TV", ylab="Sales")
+abline(lm(sales~TV)$coef, lwd=3, col="darkblue")
+plot(sales~radio, col=2, xlab="Radio", ylab="Sales")
+abline(lm(sales~radio)$coef, lwd=3, col="darkblue")
+plot(sales~newspaper, col=2, xlab="Newspaper", ylab="Sales")
+abline(lm(sales~newspaper)$coef, lwd=3, col="darkblue")
+```
+
+### Multiple LR
+```{r}
+AD <- Advertising[ ,-1] # 독립변수들
+```
+
+```{r}
+## Multiple linear regression
+lm.fit <- lm(sales ~., AD)
+summary(lm.fit)
+names(lm.fit)
+coef(lm.fit)
+```
+
+```{r}
+confint(lm.fit)
+```
+
+* Newspaper의 p값을 보면 Newspaper에 돈을 투자해봤자 판매량에는 크게 영향이 없음
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm.fit)
+#dev.off()
+```
+
+* Residual Plot: 잔차와 예측값 사이에 어떤 경향성이 있어 보인다. 따라서 등분산성이 위배되어 다중회귀모형이 적절하지 않다.
+* Q-Q plot: 표준정규분포를 따르도록 표준화 된 잔차와 실제 정규분포의 분위수 간의 일치성을 그래프로 나타냄. 시각적으로 정규성 검정
+* Standardized Residuals: 위의 표준화잔차의 절댓값의 제곱근
+* Studentized Residuals: (잔차_i)/sqrt(1-h_{ii}). Leverage가 크고 잔차가 클수록 높은 값을 갖는다. 영향력이 큰 잔차인지 나타낸다고 해석할 수 있을듯.
+* Leverage(= Hat value):  각 데이터 포인트가 회귀 모델에 미치는 영향을 평가하는 개념이다. 이는 Hat matrix의 대각원소이다. Hat value가 크다는 것은 해당 데이터 포인트가 독립 변수 공간에서 다른 데이터 포인트들보다 떨어져 있다는 것을 의미한다. Y_hat = HY의 관계식을 그대로 해석하면, i번째 hat value는 i번째 관측값이 회귀선을 얼마나 자신에게 끌어당기는지 평가한 것이다. (통계 전반적인 복습 폴더의 'Hat matrix와 레버리지' 참고)
+* 잔차가 크고 Leverage도 크면 Leverage가 작은 경우보다 모델에 더 큰 악영향을 준다.
+* 레버리지와 잔차값의 결합으로 회귀모형에 악영향을 주는 점을 찾기 위해 사용된다.
+
+
+```{r}
+par(mfrow=c(1,3))
+plot(predict(lm.fit), residuals(lm.fit))
+plot(predict(lm.fit), rstudent(lm.fit))
+plot(hatvalues(lm.fit))
+```
+
+
+
+```{r}
+which.max(hatvalues(lm.fit))
+```
+
+* hat 값이 가장 크면 이상치일 가능성이 높다. 하지만 hat값은 크고, 잔차는 작은 경우에는 모형 적합성에 긍정적 영향을 주는 관측치이므로 이상치라고 보기 힘들다.
+
+### Data2
+
+```{r}
+url.in <- "https://www.statlearning.com/s/Income1.csv"
+Income <- read.csv(url.in, h=T)
+attach(Income)
+```
+
+```{r}
+head(Income)
+```
+
+```{r}
+summary(Income)
+```
+
+### Polynomial regression
+
+```{r}
+## Polynomial regression fit
+par(mfrow = c(1,2))
+plot(Income~Education, col=2, pch=19, xlab="Years of Education",
+ylab="Income", data=Income)
+g <- lm(Income ~ poly(Education, 3), data=Income)
+
+plot(Income~Education, col=2, pch=19, xlab="Years of Education",
+ylab="Income", data=Income)
+lines(Income$Education, g$fit, col="darkblue", lwd=4,
+ylab="Income", xlab="Years of Education")
+```
+
+```{r}
+y <- Income$Income
+mean((predict(g) - y)^2) # mean(residuals(g)^2)와 동일하다.
+```
+
+```{r}
+sum(predict(g) - y)
+```
+
+### Polynomial regression from deg 1 to 12
+
+```{r}
+dist <- NULL
+par(mfrow=c(3,4))
+for (k in 1:12) {
+  g <- lm(Income ~ poly(Education, k), data=Income)
+  dist[k] <- mean(residuals(g)^2)
+  plot(Income~Education, col=2, pch=19,
+  xlab="Years of Education", ylab="Income",
+  data=Income, main=paste("k =", k))
+  lines(Income$Education,g$fit,col="darkblue",lwd=3,
+  ylab="Income", xlab="Years of Education")
+}
+
+```
+
+```{r}
+#x11()
+plot(dist, type="b", xlab="Degree of Polynomial",
+ylab="Mean squared distance")
+```
+
+```{r}
+dist # MSE
+```
+
+* 12차 모델의 MSE가 가장 낮다. 하지만 이게 좋은 결과일까? => Overfitting 예상됨.
+
+### Training measurement vs Test measurement
+
+```{r}
+set.seed(12345)
+## Simulate x and y based on a known function
+fun1 <- function(x) -(x-100)*(x-30)*(x+15)/13^4+6 # True underlying model
+x <- runif(50,0,100)
+y <- fun1(x) + rnorm(50) # 표준정규분포로부터 랜덤 노이즈 추가
+
+## Plot linear regression and splines (Prediction models)
+par(mfrow=c(1,2))
+plot(x, y, xlab="X", ylab="Y", ylim=c(1,13))
+plot(x, y, xlab="X", ylab="Y", ylim=c(1,13))
+lines(sort(x), fun1(sort(x)), col=1, lwd=2)
+abline(lm(y~x)$coef, col="orange", lwd=2)
+
+lines(smooth.spline(x,y, df=5), col="blue", lwd=2) # smoothing spline
+lines(smooth.spline(x,y, df=23), col="green", lwd=2)
+legend("topleft", lty=1, col=c(1, "orange", "blue", "green"),
+legend=c("True", "df = 1", "df = 5", "df =23"),lwd=2)
+```
+
+
+```{r}
+set.seed(45678)
+## Simulate training and test data (x, y)
+tran.x <- runif(50,0,100)
+test.x <- runif(50,0,100)
+tran.y <- fun1(tran.x) + rnorm(50)
+test.y <- fun1(test.x) + rnorm(50)
+
+## Compute MSE along with different df
+df <- 2:40
+MSE <- matrix(0, length(df), 2)
+
+for (i in 1:length(df)) {
+  tran.fit <- smooth.spline(tran.x, tran.y, df=df[i])
+  MSE[i,1] <- mean((tran.y - predict(tran.fit, tran.x)$y)^2) # training set으로 계산
+  MSE[i,2] <- mean((test.y - predict(tran.fit, test.x)$y)^2) # test set으로 계산
+}
+```
+
+```{r}
+## Plot both test and training errors
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1, ylim=c(0,4))
+
+abline(h=1, lty=2)
+legend("top", lty=1, col=c("red", "gray"),lwd=2,
+legend=c("Test MSE", "Training MSE"))
+abline(v=df[which.min(MSE[,1])], lty=3, col="gray")
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1, ylim=c(0.5,2), xlim=c(1,10))
+abline(h=1, lty=2)
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+
+```
+
+* Training MSE는 스플라인의 자유도가 높아질수록 점점 감소한다.
+* 하지만 새로운(Unseen) 데이터로 측정한 Test MSE는 모델이 유연해지고, training set에 과적합될수록 증가한다.
+
+```{r}
+set.seed(12345)
+## Simulate x and y based on a known function
+fun2 <- function(x) x/10 +2 # true underlying model: Linear
+x <- runif(50,0,100)
+y <- fun2(x) + rnorm(50)
+
+## Plot linear regression and splines
+par(mfrow=c(1,2))
+plot(x, y, xlab="X", ylab="Y", ylim=c(1,13))
+plot(x, y, xlab="X", ylab="Y", ylim=c(1,13))
+lines(sort(x), fun2(sort(x)), col=1, lwd=2)
+abline(lm(y~x)$coef, col="orange", lwd=2)
+lines(smooth.spline(x,y, df=5), col="blue", lwd=2)
+lines(smooth.spline(x,y, df=23), col="green", lwd=2)
+legend("topleft", lty=1, col=c(1, "orange", "blue", "green"),
+legend=c("True", "df = 1", "df = 5", "df =23"),lwd=2)
+```
+
+```{r}
+set.seed(45678)
+
+## Simulate training and test data (x, y)
+tran.x <- runif(50,0,100)
+test.x <- runif(50,0,100)
+tran.y <- fun2(tran.x) + rnorm(50)
+test.y <- fun2(test.x) + rnorm(50)
+
+## Compute MSE along with different df
+df <- 2:40
+MSE <- matrix(0, length(df), 2)
+for (i in 1:length(df)) {
+  tran.fit <- smooth.spline(tran.x, tran.y, df=df[i]) # training data의 x,y로 적합
+  MSE[i,1] <- mean((tran.y - predict(tran.fit, tran.x)$y)^2)
+  MSE[i,2] <- mean((test.y - predict(tran.fit, test.x)$y)^2)
+}
+```
+
+```{r}
+## Plot both test and training errors
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1)
+abline(h=1, lty=2)
+legend("top", lty=1, col=c("red", "gray"),lwd=2,
+legend=c("Test MSE", "Training MSE"))
+abline(v=df[which.min(MSE[,1])], lty=3, col="gray")
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1, ylim=c(0,1.5), xlim=c(1,10))
+abline(h=1, lty=2)
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+```
+
+```{r}
+set.seed(12345)
+## Simulate x and y based on a known function
+fun3 <- function(x) -(x-80)*(x-45)*(x-25)/15^3+10
+x <- runif(50,0,100)
+y <- fun3(x) + rnorm(50)
+
+## Plot linear regression and splines
+par(mfrow=c(1,2))
+plot(x, y, xlab="X", ylab="Y")
+plot(x, y, xlab="X", ylab="Y")
+lines(sort(x), fun3(sort(x)), col=1, lwd=2)
+abline(lm(y~x)$coef, col="orange", lwd=2)
+lines(smooth.spline(x,y, df=5), col="blue", lwd=2)
+lines(smooth.spline(x,y, df=23), col="green", lwd=2)
+legend("topright", lty=1, col=c(1, "orange", "blue", "green"),
+legend=c("True", "df = 1", "df = 5", "df =23"),lwd=2)
+
+```
+
+```{r}
+set.seed(45678)
+## Simulate training and test data (x, y)
+tran.x <- runif(50,0,100)
+test.x <- runif(50,0,100)
+tran.y <- fun3(tran.x) + rnorm(50)
+test.y <- fun3(test.x) + rnorm(50)
+
+## Compute MSE along with different df
+df <- 2:40
+MSE <- matrix(0, length(df), 2)
+for (i in 1:length(df)) {
+  tran.fit <- smooth.spline(tran.x, tran.y, df=df[i])
+  MSE[i,1] <- mean((tran.y - predict(tran.fit, tran.x)$y)^2)
+  MSE[i,2] <- mean((test.y - predict(tran.fit, test.x)$y)^2)
+}
+
+```
+
+```{r}
+## Plot both test and training errors
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1)
+abline(h=1, lty=2)
+legend("top", lty=1, col=c("red", "gray"),lwd=2,
+legend=c("Test MSE", "Training MSE"))
+abline(v=df[which.min(MSE[,1])], lty=3, col="gray")
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+matplot(df, MSE, type="l", col=c("gray", "red"),
+xlab="Flexibility", ylab="Mean Squared Error",
+lwd=2, lty=1, ylim=c(0,3), xlim=c(4,20))
+abline(h=1, lty=2)
+abline(v=df[which.min(MSE[,2])], lty=3, col="red")
+
+```
+
+### Validation Set Approach
+
+```{r}
+library(ISLR)
+data(Auto)
+str(Auto)
+```
+
+```{r}
+summary(Auto)
+```
+
+```{r}
+mpg <- Auto$mpg
+horsepower <- Auto$horsepower
+dg <- 1:9
+u <- order(horsepower)
+
+par(mfrow=c(3,3))
+for (k in 1:length(dg)) {
+  g <- lm(mpg ~ poly(horsepower, dg[k]))
+  plot(mpg~horsepower, col=2, pch=20, xlab="Horsepower",
+  ylab="mpg", main=paste("dg =", dg[k]))
+  lines(horsepower[u], g$fit[u], col="darkblue", lwd=3)
+}
+```
+
+```{r}
+set.seed(1)
+n <- nrow(Auto)
+
+## training set
+tran <- sample(n, n/2) # 샘플 중 절반을 랜덤하게 추출
+MSE <- NULL
+
+for (k in 1:length(dg)) {
+  g <- lm(mpg ~ poly(horsepower, dg[k]), subset=tran) # training set으로 학습
+  MSE[k] <- mean((mpg - predict(g, Auto))[-tran]^2) # 나머지로 MSE 계산
+}
+
+par(mfrow=c(1,3))
+plot(dg, MSE, type="b", col=2, xlab="Degree of Polynomial",
+ylab="Mean Squared Error", ylim=c(15,30), lwd=2, pch=19)
+abline(v=which.min(MSE), lty=2)
+
+K <- 10
+MSE <- matrix(0, length(dg), K)
+
+for (i in 1:K) {
+  tran <- sample(392, 196) # K번의 반복마다 training set을 다르게 뽑음(K개의 선으로 표현)
+  for (k in 1:length(dg)) { # 차수도 계속 바꿔가며
+    g <- lm(mpg ~ poly(horsepower, dg[k]), subset=tran)
+    MSE[k, i] <- mean((mpg - predict(g, Auto))[-tran]^2)
+  }
+}
+
+matplot(dg, MSE, type="l", xlab="Degree of Polynomial", lty=1,
+ylab="Mean Squared Error", col=1:10, ylim=c(15,30))
+
+avg <- apply(MSE, 1, mean) # K개의 선에 대한 평균 계산
+
+plot(dg, avg, type="b", col=2, xlab="Degree of Polynomial",
+ylab="Mean Squared Error", ylim=c(15,30), lwd=2, pch=19)
+abline(v=which.min(avg), lty=2)
+
+```
+
+* 누가 training set에 뽑히냐에 따라 결과가 크게 달라질 수 있다.
+
+### Leave one out cross validation
+
+```{r}
+n <- nrow(Auto)
+dg <- 1:9
+MSE <- matrix(0, n, length(dg))
+
+for (i in 1:n) { # validation으로 모든 관측치를 한번씩 사용
+  for (k in 1:length(dg)) {
+    g <- lm(mpg ~ poly(horsepower, k), subset=(1:n)[-i]) # i번째 관측값을 빼고 피팅
+    MSE[i, k] <- mean((mpg - predict(g, Auto))[i]^2) # i번째 관측값으로만 mse 계산
+  }
+}
+
+aMSE <- apply(MSE, 2, mean)
+
+par(mfrow=c(1, 2))
+plot(dg, aMSE, type="b", col="darkblue",
+xlab="Degree of Polynomial", ylab="Mean Squared Error",
+ylim=c(18,25), lwd=2, pch=19)
+abline(v=which.min(aMSE), lty=2)
+
+ncv <- NULL
+
+for (k in 1:length(dg)) {
+  g <- lm(mpg ~ poly(horsepower, k))
+  ncv[k] <- mean((g$res/(1-influence(g)$hat))^2) # influence() 함수를 이용해서 leverage를 계산하여 사용
+    # for loop를 n*k번 돌리는 이전 방법과 동일한 결과가 나오지만 매우 빠른 방법이다.
+}
+lines(dg, ncv, col=2, lty=2, lwd=2)
+
+K <- 10 ## 10-fold cross validation. 각 그룹의 obs 수를 최대한 비슷하게 하려고 10으로 설정함.
+MSE <- matrix(0, n, length(dg))
+
+set.seed(54321)
+u <- sample(rep(seq(K), length=n))
+table(u)
+
+for (k in 1:K) {
+  tran <- which(u!=k)
+  test <- which(u==k)
+  for (i in 1:length(dg)) {
+    g <- lm(mpg ~ poly(horsepower, i), subset=tran)
+    MSE[test, i] <- (mpg - predict(g, Auto))[test]^2
+  }
+}
+CVE <- apply(MSE, 2, mean)
+
+plot(dg, CVE, type="b", col="darkblue",
+xlab="Degree of Polynomial", ylab="Mean Squared Error",
+ylim=c(18,25), lwd=2, pch=19)
+abline(v=which.min(CVE), lty=2)
+```
+
+### K-fold CV
+
+```{r}
+N <- 9 ## Number of K-fold CV replications
+KCV <- matrix(0, length(dg), N)
+
+set.seed(1234)
+for (j in 1:N) {
+  MSE <- matrix(0, n, length(dg))
+  u <- sample(rep(seq(K), length=n))
+  for (k in 1:K) {
+    tran <- which(u!=k)
+    test <- which(u==k)
+    for (i in 1:length(dg)) {
+      g <- lm(mpg ~ poly(horsepower, i), subset=tran)
+      MSE[test, i] <- (mpg - predict(g, Auto))[test]^2
+    }
+  }
+  KCV[,j] <- apply(MSE, 2, mean)
+}
+
+matplot(dg, KCV, type="l", xlab="Degree of Polynomial", lty=1,
+ylab="MSE", ylim=c(18,25), main="10-fold CV")
+```
+
+```{r}
+apply(KCV, 2, which.min)
+```
+
+* K를 변화시켜도 모두 똑같은 차수에서 최적의 결과를 보였다. => K-fold CV의 안정성을 어느정도 보여줌. 
+
+### boot package : CV 자동으로 수행
+
+```{r}
+library(boot)
+set.seed(101010)
+
+## Leave-one-out CV
+MSE <- NULL
+for (i in 1:length(dg)) {
+  glm.fit <- glm(mpg ~ poly(horsepower ,i))
+  MSE[i] <- cv.glm(Auto, glm.fit)$delta[1]
+}
+plot(dg, MSE, type="b", col="darkblue", ylim=c(15,29),
+xlab="Degree of Polynomial", ylab="MSE", lwd=2, pch=19)
+
+## K-fold cross validation
+K <- 10
+KCV <- NULL
+for (i in 1:length(dg)) {
+  glm.fit <- glm(mpg ~ poly(horsepower ,i))
+  KCV[i] <- cv.glm(Auto, glm.fit, K=K)$delta[1]
+}
+lines(dg, KCV, col=2, lwd=2, type="b", pch=19, lty=2)
+
+```
+
+### Cubic Model with K-fold Cross Validation
+* 아까는 training set으로만 df를 바꿔가면 MSE를 계산했다면, 이번엔 CV를 활용해보겠다.
+
+```{r}
+set.seed(45678)
+x <- runif(50,0,100)
+y <- fun1(x) + rnorm(50) # cubic function + noise
+
+K <- 5
+df <- 2:40 # 총 39개의 모델
+
+MSE <- matrix(0, length(x), length(df))
+u <- sample(rep(seq(K), length=length(x))) # 1:K 값을 관측값만큼 일정한 수로 랜덤순서배정
+
+for (k in 1:K) {
+  tr <- which(u!=k)
+  te <- which(u==k)
+  for (j in 1:length(df)) {
+    fit <- smooth.spline(x[tr], y[tr], df=df[j])
+    MSE[te, j] <- y[te] - predict(fit, x[te])$y
+  }
+}
+
+CVE <- apply(MSE^2, 2, mean)
+data.frame(DF=df, CVE=CVE)
+```
+
+### Linear Model with K-fold Cross Validation
+
+```{r}
+set.seed(45678)
+x <- runif(50,0,100)
+y <- fun2(x) + rnorm(50)
+
+K <- 5
+df <- 2:40
+
+MSE <- matrix(0, length(x), length(df))
+u <- sample(rep(seq(K), length=length(x)))
+
+for (k in 1:K) {
+  tr <- which(u!=k)
+  te <- which(u==k)
+  for (j in 1:length(df)) {
+    fit <- smooth.spline(x[tr], y[tr], df=df[j])
+    MSE[te, j] <- y[te] - predict(fit, x[te])$y
+  }
+}
+
+CVE <- apply(MSE^2, 2, mean)
+data.frame(DF=df, CVE=CVE)
+```
+
+### Nonlinear Model with K-fold Cross Validation
+
+```{r}
+
+```
+
+```{r}
+set.seed(45678)
+x <- runif(50,0,100)
+y <- fun3(x) + rnorm(50)
+
+K <- 5
+df <- 2:40
+
+MSE <- matrix(0, length(x), length(df))
+u <- sample(rep(seq(K), length=length(x)))
+
+for (k in 1:K) {
+  tr <- which(u!=k)
+  te <- which(u==k)
+  for (j in 1:length(df)) {
+    fit <- smooth.spline(x[tr], y[tr], df=df[j])
+    MSE[te, j] <- y[te] - predict(fit, x[te])$y
+  }
+}
+
+CVE <- apply(MSE^2, 2, mean)
+data.frame(DF=df, CVE=CVE)
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

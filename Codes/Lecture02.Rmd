@@ -1,0 +1,382 @@
+---
+title: "Lecture02"
+author: "JongCheolLee"
+date: "2024-09-23"
+output: html_document
+---
+
+```{r}
+set.seed(123)
+n <- 100
+pp <- c(10, 50, 80, 95, 97, 98, 99) # 변수 개수를 바꿔가며 실험
+B <- matrix(0, 100, length(pp))
+
+for (i in 1:100) { # 100번 반복하며 추정
+  for (j in 1:length(pp)) {
+    beta <- rep(0, pp[j])
+    beta[1] <- 1 # Beta1 외의 가중치는 모두 0. Bias = E(Beta1_hat) - 1
+    x <- matrix(rnorm(n*pp[j]), n, pp[j])
+    y <- x %*% beta + rnorm(n) # True Linear Model
+    g <- lm(y~x) # Estimation
+    B[i,j] <- g$coef[2] # 추정한 계수들 중, Beta1_hat만 저장
+  }
+}
+
+boxplot(B, col="orange", boxwex=0.6, ylab="Coefficient estimates",
+names=pp, xlab="The number of predictors", ylim=c(-5,5))
+abline(h=1, col=2, lty=2, lwd=2)
+```
+
+
+```{r}
+apply(B, 2, mean)
+```
+
+* LSE의 unbiased 성질 덕분에 모두 평균은 1에 근접함
+
+```{r}
+apply(B, 2, var)
+```
+
+* 하지만 변수가 많아질수록 B1의 추정치의 분산이 매우 커진다.
+
+### Best Subset Selection
+
+```{r}
+library(ISLR)
+names(Hitters)
+dim(Hitters)
+sum(is.na(Hitters$Salary))
+  # 종속변수가 비어있는 애들
+```
+
+```{r}
+Hitters <- na.omit(Hitters)
+```
+
+```{r}
+dim(Hitters)
+```
+
+```{r}
+sum(is.na(Hitters))
+```
+
+```{r}
+library(leaps)
+fit <- regsubsets(Salary ~ ., Hitters)
+  # best regression subset을 고르는 함수
+summary(fit)
+```
+
+```{r}
+sg <- summary(fit)
+names(sg)
+```
+
+```{r}
+dim(sg$which)
+```
+
+```{r}
+sg$which
+
+```
+
+```{r}
+plot(fit) # default: bic
+```
+
+```{r}
+plot(fit, scale="Cp")
+
+```
+
+```{r}
+big <- regsubsets(Salary ~ ., data=Hitters, nvmax=19, nbest=10)
+  # 변수를 8개까지만 보지말고, 19개까지 모두 비교
+  # 가장 좋은 10개만 저장
+sg <- summary(big)
+dim(sg$which)
+```
+
+* best를 뽑는 방식: rss, rsq
+
+```{r}
+sg.size <- as.numeric(rownames(sg$which))
+table(sg.size)
+```
+
+```{r}
+sg.rss <- tapply(sg$rss, sg.size, min)
+w1 <- which.min(sg.rss)
+sg.rsq <- tapply(sg$rsq, sg.size, max)
+w2 <- which.max(sg.rsq)
+par(mfrow=c(1,2))
+plot(1:19, sg.rss, type="b", xlab="Number of Predictors",
+ylab="Residual Sum of Squares", col=2, pch=19)
+points(w1, sg.rss[w1], pch="x", col="blue", cex=2)
+plot(1:19, sg.rsq, type="b", xlab="Number of Predictors",
+ylab=expression(R^2), col=2, pch=19)
+points(w2, sg.rsq[w2], pch="x", col="blue", cex=2)
+
+```
+
+* RSS, R^2의 특징은 모델에 포함되는 변수를 늘릴수록 무조건 줄어든다.
+* 따라서 서로 다른 모델 간의 비교에는 부적절하다.
+* 하지만 같은 모델 내에서의 비교에는 적절한 방법
+
+### Forward, Backward selection
+
+```{r}
+g.full <- regsubsets(Salary ~., data=Hitters)
+g.forw <- regsubsets(Salary ~., data=Hitters, method="forward")
+g.back <- regsubsets(Salary ~., data=Hitters, method="backward")
+full <- summary(g.full)$which[,-1]
+full[full==TRUE] <- 1
+forw <- summary(g.forw)$which[,-1]
+forw[forw==TRUE] <- 1
+back <- summary(g.back)$which[,-1]
+back[back==TRUE] <- 1
+
+```
+
+```{r}
+full
+```
+
+```{r}
+forw
+```
+
+```{r}
+back
+```
+
+```{r}
+coef(g.full, 1:5)
+```
+
+```{r}
+coef(g.forw, 1:5)
+```
+
+```{r}
+coef(g.back, 1:5)
+```
+
+### Cp(AIC), BIC, adj_R^2
+
+```{r}
+sg.cp <- tapply(sg$cp, sg.size, min)
+w3 <- which.min(sg.cp)
+sg.bic <- tapply(sg$bic, sg.size, min)
+w4 <- which.min(sg.bic)
+sg.adjr2 <- tapply(sg$adjr2, sg.size, max)
+w5 <- which.max(sg.adjr2)
+par(mfrow=c(1,3))
+plot(1:19, sg.cp, type="b", xlab ="Number of Predictors",
+ylab=expression(C[p]), col=2, pch=19)
+points(w3, sg.cp[w3], pch="x", col="blue", cex=2)
+plot(1:19, sg.bic, type="b", xlab ="Number of Predictors",
+ylab="Bayesian information criterion", col=2, pch=19)
+points(w4, sg.bic[w4], pch="x", col="blue", cex=2)
+plot(1:19, sg.adjr2, type="b", xlab ="Number of Predictors",
+ylab=expression(paste("Adjusted ", R^2)), col=2, pch=19)
+points(w5, sg.adjr2[w5], pch="x", col="blue", cex=2)
+
+```
+
+```{r}
+model1 <- coef(big, which.min(sg$rss))
+model2 <- coef(big, which.max(sg$rsq))
+model3 <- coef(big, which.max(sg$adjr2))
+model4 <- coef(big, which.min(sg$cp))
+model5 <- coef(big, which.min(sg$bic))
+RES <- matrix(0, 20, 5)
+rownames(RES) <- names(model1)
+colnames(RES) <- c("rss", "rsq", "adjr2", "cp", "bic")
+for (i in 1:5) {
+  model <- get(paste("model", i, sep=""))
+  w <- match(names(model), rownames(RES))
+  RES[w, i] <- model
+}
+RES
+```
+
+```{r}
+apply(RES, 2, function(t) sum(t!=0)-1)
+```
+
+### Validation Set
+
+```{r}
+set.seed(1)
+train <- sample(c(TRUE, FALSE), nrow(Hitters), replace=TRUE)
+test <- (!train)
+g1 <- regsubsets(Salary ~ ., data=Hitters[train, ], nvmax=19)
+test.mat <- model.matrix(Salary~., data=Hitters[test, ])
+val.errors <- rep(NA, 19)
+
+for (i in 1:19) {
+  coefi <- coef(g1, id=i)
+  pred <- test.mat[, names(coefi)] %*% coefi
+  val.errors[i] <- sqrt(mean((Hitters$Salary[test]-pred)^2))
+}
+val.errors
+```
+
+```{r}
+w <- which.min(val.errors)
+par(mfrow=c(1,2))
+plot(1:19, val.errors, type="l", col="red",
+xlab="Number of Predictors", ylab="Validation Set Error")
+points(1:19, val.errors, pch=19, col="blue")
+points(w, val.errors[w], pch="x", col="blue", cex=2)
+
+```
+
+### K-fold validation
+
+```{r}
+set.seed(1234)
+N <- 8
+ERR <- matrix(0, 19, N)
+for (k in 1:N) {
+  tr <- sample(c(TRUE, FALSE), nrow(Hitters), replace=TRUE)
+  tt <- (!tr)
+  g <- regsubsets(Salary ~ ., data=Hitters[tr, ], nvmax=19)
+  tt.mat <- model.matrix(Salary~., data=Hitters[tt, ])
+  for (i in 1:19) {
+    coefi <- coef(g, id=i)
+    pred <- tt.mat[, names(coefi)] %*% coefi
+    ERR[i,k] <- sqrt(mean((Hitters$Salary[tt]-pred)^2))
+  }
+}
+matplot(ERR, type="l", col="red", xlab="Number of Predictors",
+lty=1, ylab="Validation Set Error")
+
+```
+
+* Validation Set이 바뀔 때마다 매우 다른 결과
+* 해결책은 교차검증!
+
+```{r}
+apply(ERR, 2, which.min)
+```
+
+```{r}
+## Define new "predict" function on regsubset
+predict.regsubsets <- function(object, newdata, id, ...) {
+form <- as.formula(object$call[[2]])
+mat <- model.matrix(form, newdata)
+coefi <- coef(object, id=id)
+xvars <- names(coefi)
+mat[, xvars] %*% coefi
+}
+set.seed(1)
+K <- 10
+n <- nrow(Hitters)
+fd <- sample(rep(1:K, length=n))
+cv.errors <- matrix(NA , n, 19, dimnames=list(NULL, paste(1:19)))
+
+for (i in 1:K) {
+  fit <- regsubsets(Salary~., Hitters[fd!=i, ], nvmax=19)
+  for (j in 1:19) {
+    pred <- predict(fit, Hitters[fd==i, ], id=j)
+    cv.errors[fd==i, j] <- (Hitters$Salary[fd==i]-pred)^2
+  }
+}
+
+sqrt(apply(cv.errors, 2, mean))
+
+```
+
+```{r}
+K.ERR <- sqrt(apply(cv.errors, 2, mean))
+ww <- which.min(K.ERR)
+par(mfrow=c(1,2))
+plot(1:19, K.ERR, type="l", col="red",
+xlab="Number of Predictors", ylab="Cross-Validation Error")
+points(1:19, K.ERR, pch=19, col="blue")
+points(ww, K.ERR[ww], pch="x", col="blue", cex=2)
+```
+
+```{r}
+## 10-fold CV with 8 different splits
+N <- 8
+n <- nrow(Hitters)
+ERR <- matrix(0, 19, N)
+set.seed(1234)
+for (k in 1:N) {
+  fd <- sample(rep(1:K, length=n))
+  CVR <- matrix(NA , n, 19)
+  for (i in 1:K) {
+    f <- regsubsets(Salary~., data=Hitters[fd!=i, ], nvmax=19)
+    for (j in 1:19) {
+      pred <- predict(f, Hitters[fd==i, ], id=j)
+      CVR[fd==i, j] <- (Hitters$Salary[fd==i]-pred)^2
+    }
+  }
+  ERR[,k] <- sqrt(apply(CVR, 2, mean))
+}
+matplot(ERR, type="l", col="red", xlab="Number of Predictors",
+lty=1, ylab="Cross-Validation Error")
+```
+
+```{r}
+apply(ERR, 2, which.min)
+```
+
+```{r}
+set.seed(111)
+fd <- sample(rep(1:K, length=n))
+CVR.1se <- matrix(NA, n, 19)
+for (i in 1:K) {
+  fit <- regsubsets(Salary~., Hitters[fd!=i, ], nvmax=19)
+  for (j in 1:19) {
+    pred <- predict(fit, Hitters[fd==i, ], id=j)
+    CVR.1se[fd==i, j] <- Hitters$Salary[fd==i]-pred
+  }
+}
+avg <- sqrt(apply(CVR.1se^2, 2, mean))
+se <- apply(CVR.1se, 2, sd)/sqrt(n)
+PE <- cbind(avg - se, avg, avg + se)
+data.frame(lwr=PE[,1], mean=PE[,2], upp=PE[,3])
+```
+
+```{r}
+which.min(PE[,2])
+```
+
+```{r}
+w <- which.min(PE[,2])
+which(PE[w, 1] < PE[,2] & PE[w, 3] > PE[,2])
+```
+
+```{r}
+min(which(PE[w, 1] < PE[,2] & PE[w, 3] > PE[,2]))
+```
+
+```{r}
+matplot(1:19, PE, type="b", col=c(1,2,1), lty=c(3,1,3), pch=20,
+xlab="Number of Predictors", ylab="Cross-Validation Error")
+abline(h=PE[w, 1], lty=3, col="gray")
+abline(h=PE[w, 3], lty=3, col="gray")
+points(which.min(avg), PE[which.min(avg),2],
+pch="o",col="blue",cex=2)
+up <- which(PE[,2] < PE[which.min(PE[,2]),3])
+points(min(up), PE[min(up),2], pch="x", col="blue", cex=2)
+
+```
+
+* CV Error가 가장 작은 10번째 값의 upper, lower 바운드 내에서 가장 가벼운 모델인 8번째 모델을 선택해야한다.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
