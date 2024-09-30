@@ -2,7 +2,9 @@
 title: "Lecture02"
 author: "JongCheolLee"
 date: "2024-09-23"
-output: html_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r}
@@ -372,7 +374,415 @@ points(min(up), PE[min(up),2], pch="x", col="blue", cex=2)
 
 * CV Error가 가장 작은 10번째 값의 upper, lower 바운드 내에서 가장 가벼운 모델인 8번째 모델을 선택해야한다.
 
+### Shrinkage Methods
+* **shrinkage** 뜻: 규제, 제약, 압축
+* **Ridge**: 계수들의 *L2-norm penalty*를 제약식에 추가
+  * 파라미터 *lambda*가 커질수록 제약이 강해짐.
+* **Lasso**(Least absolute shrinkage and selection operator): *L1-norm penalty*
+
+##### 1. Ridge regression
+```{r, warning=FALSE}
+library(glmnet)
+x0 <- model.matrix(Salary~., Hitters)[, -1]
+y <- Hitters$Salary
+
+grid <- 10^seq(10, -2, length=100)
+g1 <- glmnet(x0, y, alpha=0, lambda=grid)
+
+par(mfrow=c(1,2))
+plot(g1, "lambda", label=TRUE)
+
+fun <- function(t) sqrt(var(t)*(length(t)-1)/length(t))
+sdx <- matrix(apply(x0, 2, fun), dim(x0)[2], dim(x0)[1])
+
+x <- x0/t(sdx)
+g2 <- glmnet(x, y, alpha=0, lambda=grid)
+
+plot(g2, "lambda", label=TRUE)
+```
+
+* glmnet 사용시 범주형 변수는 더미변수로 인코딩 필수
+* 그래프 위의 19는 shrinkage method의 자유도(= 0이 아닌 계수의 개수)
+
 ```{r}
+data.frame(sd_g1=apply(x0, 2, sd), sd_g2=apply(x, 2, sd))
+```
+
+```{r}
+names(g2)
+```
+
+```{r}
+data.frame(lambda=g2$lambda, df=g2$df)
+```
+
+```{r}
+data.frame(log.lambda=round(log(g2$lambda), 4), df=g2$df)
+```
+
+```{r}
+dim(coef(g2))
+
+```
+
+```{r}
+coef(g2)[, c("s0", "s10", "s20", "s30")]
+```
+
+```{r}
+g2$lambda[50]
+```
+
+```{r}
+coef(g2)[,50]
+```
+
+```{r}
+sqrt(sum(coef(g2)[-1, 50]^2))
+```
+
+```{r}
+g2$lambda[60]
+```
+
+```{r}
+coef(g2)[,60]
+```
+
+```{r}
+sqrt(sum(coef(g2)[-1, 60]^2))
+```
+
+```{r}
+l2norm <- function(t) sqrt(sum(t^2))
+l2 <- apply(coef(g2)[-1,], 2, l2norm)
+data.frame(log_lambda=round(log(g2$lambda), 4),
+l2norm=round(l2, 4))
+```
+
+##### 2. Lasso
+* Ridge regression은 중요한 변수를 선택하는 subset selection이 어렵다.
+* Ridge와는 달리 계수가 정확히 0이 될 수 있다.
+  * Lasso에서 작은 모델은 0인 계수가 더 많은 모델
+* 필요없는 계수를 0으로 보냄으로써 변수 선택을 한다.
+* 이 방법에선 optimal model을 찾는 게 optimal lambda를 찾는 문제임.
+
+```{r}
+g3 <- glmnet(x, y, alpha=1)
+par(mfrow=c(1,2))
+plot(g3, "lambda", label=TRUE)
+plot(g3, "norm", label=TRUE)
+```
+
+* 왼쪽 그래프를 보면 lambda가 아주 큰 값에서 작아지면서 0이 아닌 계수가 하나씩 등장함을 알 수 있다.
+
+```{r}
+dim(coef(g3))
+```
+
+```{r}
+coef(g3)[, c("s0", "s10", "s40", "s60")]
+```
+
+```{r}
+data.frame(lambda=g3$lambda, df=g3$df)
+```
+
+```{r}
+dim(g3$beta)
+```
+
+```{r}
+df2 <- apply(g3$beta, 2, function(t) sum(t!=0))
+```
+
+```{r}
+data.frame(df1=g3$df, df2=df2)
+```
+
+### Selecting the Tuning Parameter in shrinkage methods
+
+##### One standard error rule
+
+```{r}
+set.seed(123)
+train <- sample(1:nrow(x), nrow(x)/2)
+test <- (-train)
+y.test <- y[test]
+grid <- 10^seq(10, -2, length=100)
+r1 <- glmnet(x[train, ], y[train], alpha=0, lambda=grid)
+ss <- 0:(length(r1$lambda)-1)
+Err <- NULL
+for (i in 1:length(r1$lambda)) {
+  r1.pred <- predict(r1, s=ss[i], newx=x[test, ])
+  Err[i] <- mean((r1.pred - y.test)^2)
+}
+wh <- which.min(Err)
+lam.opt <- r1$lambda[wh]
+```
+
+```{r}
+r.full <- glmnet(x, y, alpha=0, lambda=grid)
+r.full$beta[,wh]
+```
+
+```{r}
+predict(r.full, type="coefficients", s=lam.opt)
+```
+* 누가 validation set으로 할당되냐에 따라 결과가 크게 차이날 수 있어서 실제론 CV가 훨씬 안정적이고 좋음.
+
+##### Cross-Validation(One standard error rule)
+
+```{r}
+set.seed(1)
+cv.r <- cv.glmnet(x, y, alpha=0, nfolds=10)
+names(cv.r)
+```
+
+```{r}
+cbind(cv.r$cvlo, cv.r$cvm, cv.r$cvup)
+plot(cv.r)
+```
+
+```{r}
+log(cv.r$lambda.min)
+```
+
+```{r}
+log(cv.r$lambda.1se)
+```
+
+```{r}
+which.min(cv.r$lambda)
+```
+
+```{r}
+which(cv.r$lambda==cv.r$lambda.1se)
+```
+
+```{r}
+b.min <- predict(cv.r, type="coefficients", s=cv.r$lambda.min)
+b.1se <- predict(cv.r, type="coefficients", s=cv.r$lambda.1se)
+cbind(b.min, b.1se)
+
+```
+
+```{r}
+c(sqrt(sum(b.min[-1]^2)), sqrt(sum(b.1se[-1]^2)))
+```
+
+```{r}
+set.seed(2)
+cv.l <- cv.glmnet(x, y, alpha=1, nfolds=10)
+plot(cv.l)
+```
+
+```{r}
+log(cv.l$lambda.min)
+```
+
+```{r}
+log(cv.l$lambda.1se)
+```
+
+```{r}
+which(cv.l$lambda==cv.l$lambda.min)
+```
+
+```{r}
+which(cv.l$lambda==cv.l$lambda.1se)
+```
+
+```{r}
+b.min <- predict(cv.l, type="coefficients", s=cv.l$lambda.min)
+b.1se <- predict(cv.l, type="coefficients", s=cv.l$lambda.1se)
+cbind(b.min, b.1se)
+```
+
+```{r}
+c(sum(abs(b.min[-1])), sum(abs(b.1se[-1])))
+```
+
+### Ridge: The Bias-Variance tradeoff
+
+```{r}
+set.seed(1234)
+K <- 100
+p <- 40
+n <- 50
+beta <- runif(p, -1, 1)
+lam <- 10^seq(3, -3, length.out=50)
+x <- matrix(rnorm(n * p), n, p)
+bhat <- array(0, c(p, length(lam), K))
+```
+
+```{r}
+for (i in 1:K) {
+  y <- x %*% beta + rnorm(n)
+  fit <- glmnet(x, y, alpha=0, lambda=lam)
+  bhat[,,i] <- as.matrix(fit$beta)
+}
+
+MSE0 <- Bias0 <- Vars0 <- matrix(0, p, length(lam))
+
+for (k in 1:length(lam)) {
+  MS <- (bhat[,k,] - matrix(beta, p, K))^2
+  MSE0[,k] <- apply(MS, 1, mean)
+  Bias0[,k] <- abs(apply(bhat[,k,], 1, mean) - beta)
+  Vars0[,k] <- apply(bhat[,k,], 1, var)
+}
+```
+
+```{r}
+MSE <- apply(MSE0, 2, mean)
+Bias <- apply(Bias0, 2, mean)
+Vars <- apply(Vars0, 2, mean)
+```
+
+```{r}
+MAT <- cbind(Bias^2, Vars, MSE)
+data.frame(lambda=round(lam, 3), MSE=MAT[,3])
+```
+
+```{r}
+matplot(MAT, type="l", col=c(3,4,2), lty=1, xaxt="n",
+xlab=expression(lambda), ylab="Mean Squared Error")
+legend("topright", c("Bias", "Variance", "MSE"), col=c(3,4,2),
+lty=1)
+
+w <- which.min(MAT[,3])
+abline(v=w, col="gray", lty=2)
+points(w, MAT[w, 3], pch=4, col="red", cex=2)
+cc <- seq(1, 50, 8)
+axis(1, at=cc, labels=round(lam[cc],4))
+
+```
+
+### Lasso: The Bias-Variance Trade Off
+
+```{r}
+set.seed(1234)
+K <- 100
+p <- 40
+n <- 50
+beta <- runif(p, -1, 1)
+lam <- 10^seq(0.7, -4, length.out=50)
+x <- matrix(rnorm(n * p), n, p)
+bhat <- array(0, c(p, length(lam), K))
+for (i in 1:K) {
+  y <- x %*% beta + rnorm(n)
+  fit <- glmnet(x, y, alpha=1, lambda=lam)
+  bhat[,,i] <- as.matrix(fit$beta)
+}
+MSE0 <- Bias0 <- Vars0 <- matrix(0, p, length(lam))
+for (k in 1:length(lam)) {
+  MS <- (bhat[,k,] - matrix(beta, p, K))^2
+  MSE0[,k] <- apply(MS, 1, mean)
+  Bias0[,k] <- abs(apply(bhat[,k,], 1, mean) - beta)
+  Vars0[,k] <- apply(bhat[,k,], 1, var)
+}
+
+```
+
+```{r}
+MSE <- apply(MSE0, 2, mean)
+Bias <- apply(Bias0, 2, mean)
+Vars <- apply(Vars0, 2, mean)
+MAT <- cbind(Bias^2, Vars, MSE)
+data.frame(lambda=round(lam, 3), MSE=MAT[,3])
+
+```
+
+```{r}
+matplot(MAT, type="l", col=c(3,4,2), lty=1, xaxt="n",
+xlab=expression(lambda), ylab="Mean Squared Error")
+legend("topright", c("Bias", "Variance", "MSE"), col=c(3,4,2),
+lty=1)
+w <- which.min(MAT[,3])
+abline(v=w, col="gray", lty=2)
+points(w, MAT[w, 3], pch=4, col="red", cex=2)
+cc <- seq(1, 50, 8)
+axis(1, at=cc, labels=round(lam[cc],4))
+
+```
+
+```{r}
+MSE.fun <- function(n, p, K, beta, lam, xtest, ytest) {
+  yhat0 <- yhat1 <- array(0, c(n, length(lam), K))
+  for (i in 1:K) {
+    x <- matrix(rnorm(n * p), n, p)
+    y <- x %*% beta + rnorm(n)
+    g0 <- glmnet(x, y, alpha=0, lambda=lam)
+    g1 <- glmnet(x, y, alpha=1, lambda=lam)
+    yhat0[1:n, 1:length(lam), i] <- predict(g0, x.test)
+    yhat1[1:n, 1:length(lam), i] <- predict(g1, x.test)
+  }
+  MSE0 <- Bias0 <- Vars0 <- array(0, c(n,length(lam)))
+  MSE1 <- Bias1 <- Vars1 <- array(0, c(n,length(lam)))
+  for (j in 1:length(lam)) {
+    PE0 <-(yhat0[,j,] - matrix(ytest, n, K))^2
+    PE1 <-(yhat1[,j,] - matrix(ytest, n, K))^2
+    MSE0[ ,j] <- apply(PE0, 1, mean)
+    MSE1[ ,j] <- apply(PE1, 1, mean)
+    BS0 <- abs(yhat0[,j,] - matrix(ytest, n, K))
+    BS1 <- abs(yhat1[,j,] - matrix(ytest, n, K))
+    Bias0[,j] <- apply(BS0, 1, mean)
+    Bias1[,j] <- apply(BS1, 1, mean)
+    Vars0[,j] <- apply(yhat0[,j,], 1, var)
+    Vars1[,j] <- apply(yhat1[,j,], 1, var)
+  }
+  MSE.r <- apply(MSE0, 2, mean)
+  MSE.l <- apply(MSE1, 2, mean)
+  Bia.r <- apply(Bias0, 2, mean)
+  Bia.l <- apply(Bias1, 2, mean)
+  Var.r <- apply(Vars0, 2, mean)
+  Var.l <- apply(Vars1, 2, mean)
+  ridge <- apply(cbind(Bia.r^2, Var.r, MSE.r), 2, rev)
+  lasso <- apply(cbind(Bia.l^2, Var.l, MSE.l), 2, rev)
+  newlam <- rev(lam)
+  return(list(ridge=ridge,lasso=lasso, lambda=newlam))
+}
+
+```
+
+```{r}
+set.seed(111000)
+K <- 10
+p <- 120
+n <- 100
+lam <- 10^seq(1, -3, -0.05)
+x.test <- matrix(rnorm(n * p), n, p)
+```
+
+```{r}
+## The case that all predictors have non-zero coefficients
+beta1 <- beta2 <- runif(p, -1, 1)
+ytest1 <- x.test %*% beta1 + rnorm(n)
+g1 <- MSE.fun(n, p, K, beta1, lam, xtest, ytest1)
+RES1 <- cbind(g1$lasso, g1$ridge)
+
+## The case that only 5 predictors have non-zero coefficients
+beta2[6:p] <- 0
+ytest2 <- x.test %*% beta2 + rnorm(n)
+g2 <- MSE.fun(n, p, K, beta2, lam, xtest, ytest2)
+RES2 <- cbind(g2$lasso, g2$ridge)
+
+```
+
+```{r}
+par(mfrow=c(1,2))
+matplot(RES1, type="l", col=c(1,3,2), lty=rep(1:2,each=3),
+xlab=expression(lambda), xaxt="n",
+ylab="Mean Squared Error")
+cc <- c(1, seq(21, 81, 20))
+axis(1, at=cc, labels=g1$lambda[cc])
+matplot(RES2, type="l", col=c(1,3,2), lty=rep(1:2,each=3),
+xlab=expression(lambda), xaxt="n",
+ylab="Mean Squared Error")
+legend("topright",c("Bias_Lasso", "Variance_Lasso", "MSE_Lasso",
+"Bias_Ridge", "Variance_Ridge", "MSE_Ridge"),
+col=c(1,3,2), lty=rep(1:2, each=3))
+axis(1, at=cc, labels=g2$lambda[cc])
 
 ```
 
@@ -380,3 +790,10 @@ points(min(up), PE[min(up),2], pch="x", col="blue", cex=2)
 
 ```
 
+```{r}
+
+```
+
+```{r}
+
+```
