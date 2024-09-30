@@ -2,7 +2,9 @@
 title: "Lecture 1 0912"
 author: "JongCheolLee"
 date: "2024-09-02"
-output: html_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ### Data1
