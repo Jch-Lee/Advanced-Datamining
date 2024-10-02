@@ -1,0 +1,208 @@
+---
+title: "Homework01"
+author: "JongCheolLee"
+date: "2024-09-30"
+output:
+  pdf_document:
+    latex_engine: xelatex
+mainfont: NanumGothic
+---
+
+## Data
+
+```{r}
+library(MASS)
+data(Boston)
+```
+
+```{r}
+head(Boston)
+```
+
+```{r, eval=F}
+?Boston
+```
+
+```{r}
+y <- Boston[, 1]
+x <- Boston[, -c(1,4,9)]
+x <- as.matrix(scale(x))
+```
+
+* 506 observations with 14 variables
+* **crim**: response variable (11 variables are scaled  predictors)
+
+```{r}
+dim(x)
+```
+
+```{r}
+length(y)
+```
+
+```{r}
+class(x)
+```
+
+```{r}
+colnames(x)
+```
+
+#### Housing Values in Suburbs of Boston
+* **crim**: 마을별 1인당 범죄율.
+* **zn**: 25,000 평방 피트 이상의 주거용 토지 비율.
+* **indus**: 마을별 비소매업 상업 지역의 비율.
+* **nox**: 대기 중 산화질소 농도(10백만분율).
+* **rm**: 주택당 평균 방 개수.
+* **age**: 1940년 이전에 건설된 자가 거주 주택 비율.
+* **dis**: 보스턴의 5개 고용 센터까지의 가중 평균 거리.
+* **tax**: 10,000달러당 재산세율.
+* **ptratio**: 마을별 학생-교사 비율.
+* **black**: 1000(Bk−0.63)^2 여기서 Bk는 마을별 흑인 인구 비율.
+* **lstat**: 저소득층 인구 비율(백분율).
+* **medv**: 자가 소유 주택의 중위값(단위: 1,000달러).
+
+#### Goal  
+**Boston의 각 마을의 1인당 범죄율 예측**
+
+```{r}
+apply(x, 2, function(t) sum(is.na(t)))
+```
+
+```{r}
+head(x, 3)
+```
+
+## Question 1.
+
+```{r}
+x0 <- x[1,]
+x0
+```
+
+```{r}
+train <- x[-1,]
+dim(train)
+```
+
+```{r}
+head(train, 3)
+```
+
+##### test chunk
+```{r, echo=F, eval=F}
+a <- matrix(rep(seq(10, 50, 10), 5), 5, 5, byrow = T)
+b <- matrix(rep(seq(1,5,1),5), nrow=5, byrow=T)
+a-b
+
+dif <- apply(abs(train-matrix(rep(x0, nrow(train)), nrow=nrow(train), byrow=T)), 1, sum)
+dif <- as.numeric(dif)
+
+sort(dif)
+close_dif <- order(dif, decreasing = F)[1:10]+1
+dif[177]
+train[177,] == x[178,]
+y[close_dif]
+
+dif2 <- apply((train-matrix(rep(x0, nrow(train)), nrow=nrow(train), byrow=T))^2, 1, sum)
+sqrt(dif2)
+```
+
+```{r}
+dist_1 <- function(data) {
+  test <- data[1,]
+  train <- data[-1,]
+  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
+  d_505 <- apply(abs(diff), 1, sum)
+  d_505 <- as.numeric(d_505)
+  return(d_505)
+}
+
+d1_vector <- dist_1(x)
+
+close_10 <- order(d1_vector,
+                  decreasing = F)[1:10]
+close_10_idx <- close_10+1
+
+fhat_1 <- mean(y[close_10_idx])
+
+fhat_1
+```
+
+```{r}
+dist_2 <- function(data) {
+  test <- data[1,]
+  train <- data[-1,]
+  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
+  d_505 <- sqrt(apply(diff^2, 1, sum))
+  d_505 <- as.numeric(d_505)
+  return(d_505)
+}
+
+#sum(dist_2(x) != sqrt(dif2))
+
+d2_vector <- dist_2(x)
+
+close2_10 <- order(d2_vector,
+                   decreasing = F)[1:10]
+close2_10_idx <- close2_10+1
+
+fhat_2 <- mean(y[close2_10_idx])
+
+fhat_2
+```
+
+```{r}
+dist_3 <- function(data) {
+  test <- data[1,]
+  train <- data[-1,]
+  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
+  numer <- abs(diff)
+  denom <- abs(train) + abs(matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T))
+  d_505 <- apply((numer/denom), 1, sum)
+  d_505 <- as.numeric(d_505)
+  return(d_505)
+}
+
+d3_vector <- dist_3(x)
+close3_10 <- order(d3_vector,
+                   decreasing = F)[1:10]
+close3_10_idx <- close3_10+1
+
+fhat_3 <- mean(y[close3_10_idx])
+
+fhat_3
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

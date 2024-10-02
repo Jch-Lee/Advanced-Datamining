@@ -5,6 +5,7 @@ date: "2024-09-23"
 output:
   pdf_document:
     latex_engine: xelatex
+mainfont: NanumGothic
 ---
 
 ```{r}
