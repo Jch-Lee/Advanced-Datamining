@@ -21,7 +21,7 @@ data(Boston)
 head(Boston)
 ```
 
-```{r, eval=F}
+```{r, eval=F, echo=F}
 ?Boston
 ```
 
@@ -160,13 +160,13 @@ fhat_2 <- fhat(dist_func=dist_2,
                test=test,
                target=y[tran],
                K=10)
-fhat_3 <- fhat(dist_func=dist_2,
+fhat_3 <- fhat(dist_func=dist_3,
                train=train,
                test=test,
                target=y[tran],
                K=10)
 
-c(fhat_1, fhat_2, fhat_3)
+data.frame(l=1:3,fhat=c(fhat_1, fhat_2, fhat_3))
 # [1] 0.115894 0.201866 0.074659
 ```
 
@@ -184,8 +184,6 @@ y_te <- y[te]
 
 test <- testset[100,]
 fhat(dist_1, y[tran], K=1)
-
-
 ```
 
 
@@ -222,9 +220,9 @@ PE <- function(x, y) {
   PE2 <- apply(f2_mat, 2, function(t) sqrt(mean(t)))
   PE3 <- apply(f3_mat, 2, function(t) sqrt(mean(t)))
   
-  plot(PE1, type="l")
-  lines(PE2, col="blue")
-  lines(PE3, col="red")
+#  plot(PE1, type="l")
+#  lines(PE2, col="blue")
+#  lines(PE3, col="red")
   
   result_df <- data.frame(K_opt=c(which.min(PE1),
                                   which.min(PE2),
@@ -233,12 +231,17 @@ PE <- function(x, y) {
                                      min(PE2),
                                      min(PE3)))
   
-  return(result_df)
+  return(list(result_df, cbind(PE1, PE2, PE3)))
 }
+
 
 res2 <- PE(x,y)
 
-res2
+plot(res2[[2]][,1], type="l")
+lines(res2[[2]][,2], col="blue")
+lines(res2[[2]][,3], col="red")
+
+res2[[1]]
 ```
 
 ## Question 3.
@@ -282,9 +285,9 @@ CVE <- function(x, y){
   
   CVE_mat <- sqrt(res_mat/506)
   
-  plot(CVE_mat[,1], type="l")
-  lines(CVE_mat[,2], col="blue")
-  lines(CVE_mat[,3], col="red")
+#  plot(CVE_mat[,1], type="l")
+#  lines(CVE_mat[,2], col="blue")
+#  lines(CVE_mat[,3], col="red")
   
   K_opt <- apply(CVE_mat, 2, which.min)
   CVE_value <- apply(CVE_mat, 2, min)
@@ -297,12 +300,16 @@ CVE <- function(x, y){
                                      CVE_value[3]))
   rownames(result_df) = c("1","2","3")
   
-  return(result_df)
+  return(list(result_df, CVE_mat))
 }
 
-res <- CVE(x,y)
+res3 <- CVE(x,y)
 
-res
+plot(res3[[2]][,3], type="l", col="red")
+lines(res3[[2]][,2], col="blue")
+lines(res3[[2]][,1])
+
+res3[[1]]
 ```
 
 ## Question 4.
@@ -354,9 +361,9 @@ CVE_g <- function(x, y){
   
   CVE_mat <- sqrt(res_mat/506)
   
-  plot(CVE_mat[,1], type="l")
-  lines(CVE_mat[,2], col="blue")
-  lines(CVE_mat[,3], col="red")
+#  plot(CVE_mat[,1], type="l")
+#  lines(CVE_mat[,2], col="blue")
+#  lines(CVE_mat[,3], col="red")
   
   K_opt <- apply(CVE_mat, 2, which.min)
   CVE_value <- apply(CVE_mat, 2, min)
@@ -369,12 +376,16 @@ CVE_g <- function(x, y){
                                      CVE_value[3]))
   rownames(result_df) <- 1:3
   
-  return(result_df)
+  return(list(result_df, CVE_mat))
 }
 
 res4 <- CVE_g(x,y)
 
-res4
+plot(res4[[2]][,3], type="l", col="red")
+lines(res4[[2]][,2], col="blue")
+lines(res4[[2]][,1])
+
+res4[[1]]
 ```
 
 ## Question 5.
@@ -432,9 +443,9 @@ CVE_h <- function(x, y){
   
   CVE_mat <- sqrt(res_mat/506)
   
-  plot(CVE_mat[,1], type="l")
-  lines(CVE_mat[,2], col="blue")
-  lines(CVE_mat[,3], col="red")
+#  plot(CVE_mat[,1], type="l")
+#  lines(CVE_mat[,2], col="blue")
+#  lines(CVE_mat[,3], col="red")
   
   K_opt <- apply(CVE_mat, 2, which.min)
   CVE_value <- apply(CVE_mat, 2, min)
@@ -447,12 +458,16 @@ CVE_h <- function(x, y){
                                      CVE_value[3]))
   rownames(result_df) <- 1:3
   
-  return(result_df)
+  return(list(result_df, CVE_mat))
 }
 
 res5 <- CVE_h(x,y)
 
-res5
+plot(res5[[2]][,3], type="l", col="red")
+lines(res5[[2]][,2], col="blue")
+lines(res5[[2]][,1])
+
+res5[[1]]
 ```
 
 
