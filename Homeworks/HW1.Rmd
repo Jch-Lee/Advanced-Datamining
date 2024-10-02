@@ -9,7 +9,7 @@ mainfont: NanumGothic
 ---
 
 ## Data
-가나다
+
 ```{r}
 library(MASS)
 data(Boston)
