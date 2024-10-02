@@ -3,9 +3,11 @@ title: "Homework01"
 author: "JongCheolLee"
 date: "2024-09-30"
 output:
+  html_document:
+    df_print: paged
   pdf_document:
     latex_engine: xelatex
-mainfont: NanumGothic
+#mainfont: Nanum
 ---
 
 ## Data
@@ -75,22 +77,14 @@ head(x, 3)
 
 ## Question 1.
 
-```{r}
+```{r, echo=F, eval=F}
+##### test chunk
 x0 <- x[1,]
 x0
-```
 
-```{r}
 train <- x[-1,]
 dim(train)
-```
 
-```{r}
-head(train, 3)
-```
-
-##### test chunk
-```{r, echo=F, eval=F}
 a <- matrix(rep(seq(10, 50, 10), 5), 5, 5, byrow = T)
 b <- matrix(rep(seq(1,5,1),5), nrow=5, byrow=T)
 a-b
@@ -109,100 +103,357 @@ sqrt(dif2)
 ```
 
 ```{r}
-dist_1 <- function(data) {
-  test <- data[1,]
-  train <- data[-1,]
-  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
-  d_505 <- apply(abs(diff), 1, sum)
-  d_505 <- as.numeric(d_505)
-  return(d_505)
+test <- x[1,]
+train <- x[-1,]
+
+te <- 1
+tran <- (1:nrow(x))[-te]
+
+dist_1 <- function(train, test) {
+  diff <- train - matrix(rep(test, nrow(train)),
+                         nrow=nrow(train), byrow=T)
+  dists <- apply(abs(diff), 1, sum)
+  dists <- as.numeric(dists)
+  return(dists)
 }
-
-d1_vector <- dist_1(x)
-
-close_10 <- order(d1_vector,
-                  decreasing = F)[1:10]
-close_10_idx <- close_10+1
-
-fhat_1 <- mean(y[close_10_idx])
-
-fhat_1
 ```
 
 ```{r}
-dist_2 <- function(data) {
-  test <- data[1,]
-  train <- data[-1,]
-  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
-  d_505 <- sqrt(apply(diff^2, 1, sum))
-  d_505 <- as.numeric(d_505)
-  return(d_505)
+dist_2 <- function(train, test) {
+  diff <- train - matrix(rep(test, nrow(train)),
+                         nrow=nrow(train), byrow=T)
+  dists <- sqrt(apply(diff^2, 1, sum))
+  dists <- as.numeric(dists)
+  return(dists)
 }
-
-#sum(dist_2(x) != sqrt(dif2))
-
-d2_vector <- dist_2(x)
-
-close2_10 <- order(d2_vector,
-                   decreasing = F)[1:10]
-close2_10_idx <- close2_10+1
-
-fhat_2 <- mean(y[close2_10_idx])
-
-fhat_2
 ```
 
 ```{r}
-dist_3 <- function(data) {
-  test <- data[1,]
-  train <- data[-1,]
-  diff <- train - matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T)
+dist_3 <- function(train, test) {
+  diff <- train - matrix(rep(test, nrow(train)),
+                         nrow=nrow(train), byrow=T)
   numer <- abs(diff)
-  denom <- abs(train) + abs(matrix(rep(test, nrow(train)), nrow=nrow(train), byrow=T))
-  d_505 <- apply((numer/denom), 1, sum)
-  d_505 <- as.numeric(d_505)
-  return(d_505)
+  denom <- abs(train) + abs(matrix(rep(test, nrow(train)),
+                                   nrow=nrow(train), byrow=T))
+  dists <- apply((numer/denom), 1, sum)
+  dists <- as.numeric(dists)
+  return(dists)
+}
+```
+
+```{r}
+fhat <- function(dist_func, train, test, target, K) {
+  dist_vector <- dist_func(train, test)
+  closest_K <- order(dist_vector,
+                      decreasing = F)[1:K]
+  fhat <- mean(target[closest_K])
+  return(fhat)
 }
 
-d3_vector <- dist_3(x)
-close3_10 <- order(d3_vector,
-                   decreasing = F)[1:10]
-close3_10_idx <- close3_10+1
+fhat_1 <- fhat(dist_func=dist_1,
+               train=train,
+               test=test,
+               target=y[tran],
+               K=10)
+fhat_2 <- fhat(dist_func=dist_2,
+               train=train,
+               test=test,
+               target=y[tran],
+               K=10)
+fhat_3 <- fhat(dist_func=dist_2,
+               train=train,
+               test=test,
+               target=y[tran],
+               K=10)
 
-fhat_3 <- mean(y[close3_10_idx])
-
-fhat_3
+c(fhat_1, fhat_2, fhat_3)
+# [1] 0.115894 0.201866 0.074659
 ```
+
+## Question 2.
+
+```{r, echo=F, eval=F}
+### test chunk
+set.seed(12345)
+tran <- sample(nrow(x), 400) # Randomly selected 400 samples
+te <- c(1:500)[-tran]
+
+train <- x[tran,]
+testset <- x[-tran,]
+y_te <- y[te]
+
+test <- testset[100,]
+fhat(dist_1, y[tran], K=1)
+
+
+```
+
 
 ```{r}
+set.seed(12345)
+tran <- sample(nrow(x), 400) # Randomly selected 400 samples
+te <- c(1:nrow(x))[-tran]
 
+PE <- function(x, y) {
+  train <- x[tran,]
+  testset <- x[-tran,]
+  y_te <- y[te]
+  
+  K_list <- seq(1,100)
+  
+  f1_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+  f2_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+  f3_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+  
+  for (i in 1:nrow(testset)) {
+    test <- testset[i,]
+    y_i <- y_te[i]
+    for (k in K_list) {
+      fhat_1 <- fhat(dist_1, train, test, y[tran], K=k)
+      fhat_2 <- fhat(dist_2, train, test, y[tran], K=k)
+      fhat_3 <- fhat(dist_3, train, test, y[tran], K=k)
+      f1_mat[i,k] <- (y_i - fhat_1)^2
+      f2_mat[i,k] <- (y_i - fhat_2)^2
+      f3_mat[i,k] <- (y_i - fhat_3)^2
+    }
+  }
+  
+  PE1 <- apply(f1_mat, 2, function(t) sqrt(mean(t)))
+  PE2 <- apply(f2_mat, 2, function(t) sqrt(mean(t)))
+  PE3 <- apply(f3_mat, 2, function(t) sqrt(mean(t)))
+  
+  plot(PE1, type="l")
+  lines(PE2, col="blue")
+  lines(PE3, col="red")
+  
+  result_df <- data.frame(K_opt=c(which.min(PE1),
+                                  which.min(PE2),
+                                  which.min(PE3)),
+                          PE_value=c(min(PE1),
+                                     min(PE2),
+                                     min(PE3)))
+  
+  return(result_df)
+}
+
+res2 <- PE(x,y)
+
+res2
 ```
+
+## Question 3.
 
 ```{r}
+set.seed(1234)
+foldID <- sample(rep(1:10, length=nrow(x)))
 
+CVE <- function(x, y){
+  for (id in 1:10) {
+    res_mat <- matrix(0, nrow=100, ncol=3)
+    
+    train <- x[foldID!=id,]
+    testset <- x[foldID==id,]
+    y_te <- y[foldID==id]
+    
+    K_list <- 1:100
+    
+    f1_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    f2_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    f3_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    
+    for (i in 1:nrow(testset)) {
+      test <- testset[i,]
+      y_i <- y_te[i]
+      for (k in K_list) {
+        fhat_1 <- fhat(dist_1, train, test, y[foldID!=id], K=k)
+        fhat_2 <- fhat(dist_2, train, test, y[foldID!=id], K=k)
+        fhat_3 <- fhat(dist_3, train, test, y[foldID!=id], K=k)
+        f1_mat[i,k] <- (y_i - fhat_1)^2
+        f2_mat[i,k] <- (y_i - fhat_2)^2
+        f3_mat[i,k] <- (y_i - fhat_3)^2
+      }
+    }
+    mkPE1 <- apply(f1_mat, 2, sum)
+    mkPE2 <- apply(f2_mat, 2, sum)
+    mkPE3 <- apply(f3_mat, 2, sum)
+    
+    res_mat <- res_mat + cbind(mkPE1, mkPE2, mkPE3)
+  }
+  
+  CVE_mat <- sqrt(res_mat/506)
+  
+  plot(CVE_mat[,1], type="l")
+  lines(CVE_mat[,2], col="blue")
+  lines(CVE_mat[,3], col="red")
+  
+  K_opt <- apply(CVE_mat, 2, which.min)
+  CVE_value <- apply(CVE_mat, 2, min)
+  
+  result_df <- data.frame(K_opt=c(K_opt[1],
+                                  K_opt[2],
+                                  K_opt[3]),
+                          CVE_value=c(CVE_value[1],
+                                     CVE_value[2],
+                                     CVE_value[3]))
+  rownames(result_df) = c("1","2","3")
+  
+  return(result_df)
+}
+
+res <- CVE(x,y)
+
+res
 ```
+
+## Question 4.
 
 ```{r}
+ghat <- function(dist_func, train, test, target, K) {
+  dist_vector <- dist_func(train, test)
+  closest_K <- order(dist_vector,
+                      decreasing = F)[1:K]
+  ghat <- median(target[closest_K])
+  return(ghat)
+}
 
+set.seed(1234)
+foldID <- sample(rep(1:10, length=nrow(x)))
+
+CVE_g <- function(x, y){
+  for (id in 1:10) {
+    res_mat <- matrix(0, nrow=100, ncol=3)
+    
+    train <- x[foldID!=id,]
+    testset <- x[foldID==id,]
+    y_te <- y[foldID==id]
+    
+    K_list <- 1:100
+    
+    g1_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    g2_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    g3_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    
+    for (i in 1:nrow(testset)) {
+      test <- testset[i,]
+      y_i <- y_te[i]
+      for (k in K_list) {
+        ghat_1 <- ghat(dist_1, train, test, y[foldID!=id], K=k)
+        ghat_2 <- ghat(dist_2, train, test, y[foldID!=id], K=k)
+        ghat_3 <- ghat(dist_3, train, test, y[foldID!=id], K=k)
+        g1_mat[i,k] <- (y_i - ghat_1)^2
+        g2_mat[i,k] <- (y_i - ghat_2)^2
+        g3_mat[i,k] <- (y_i - ghat_3)^2
+      }
+    }
+    mkPE1 <- apply(g1_mat, 2, sum)
+    mkPE2 <- apply(g2_mat, 2, sum)
+    mkPE3 <- apply(g3_mat, 2, sum)
+    
+    res_mat <- res_mat + cbind(mkPE1, mkPE2, mkPE3)
+  }
+  
+  CVE_mat <- sqrt(res_mat/506)
+  
+  plot(CVE_mat[,1], type="l")
+  lines(CVE_mat[,2], col="blue")
+  lines(CVE_mat[,3], col="red")
+  
+  K_opt <- apply(CVE_mat, 2, which.min)
+  CVE_value <- apply(CVE_mat, 2, min)
+  
+  result_df <- data.frame(K_opt=c(K_opt[1],
+                                  K_opt[2],
+                                  K_opt[3]),
+                          CVE_value=c(CVE_value[1],
+                                     CVE_value[2],
+                                     CVE_value[3]))
+  rownames(result_df) <- 1:3
+  
+  return(result_df)
+}
+
+res4 <- CVE_g(x,y)
+
+res4
 ```
+
+## Question 5.
 
 ```{r}
+hhat <- function(dist_func, train, test, target, K) {
+  dist_vector <- dist_func(train, test)
+  closest_K <- order(dist_vector,
+                      decreasing = F)[1:K]
+  
+  min_dist <- min(dist_vector)
+  
+  delta <- exp(-(dist_vector[closest_K] - min_dist)^2)
+  D_lk <- sum(delta)
+  
+  hhat <- sum(delta*target[closest_K])/(D_lk)
+  return(hhat)
+}
 
+set.seed(1234)
+foldID <- sample(rep(1:10, length=nrow(x)))
+
+CVE_h <- function(x, y){
+  for (id in 1:10) {
+    res_mat <- matrix(0, nrow=100, ncol=3)
+    
+    train <- x[foldID!=id,]
+    testset <- x[foldID==id,]
+    y_te <- y[foldID==id]
+    
+    K_list <- 1:100
+    
+    h1_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    h2_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    h3_mat <- matrix(0, nrow=nrow(testset), ncol=100)
+    
+    for (i in 1:nrow(testset)) {
+      test <- testset[i,]
+      y_i <- y_te[i]
+      for (k in K_list) {
+        hhat_1 <- hhat(dist_1, train, test, y[foldID!=id], K=k)
+        hhat_2 <- hhat(dist_2, train, test, y[foldID!=id], K=k)
+        hhat_3 <- hhat(dist_3, train, test, y[foldID!=id], K=k)
+        h1_mat[i,k] <- (y_i - hhat_1)^2
+        h2_mat[i,k] <- (y_i - hhat_2)^2
+        h3_mat[i,k] <- (y_i - hhat_3)^2
+      }
+    }
+    mkPE1 <- apply(h1_mat, 2, sum)
+    mkPE2 <- apply(h2_mat, 2, sum)
+    mkPE3 <- apply(h3_mat, 2, sum)
+    
+    res_mat <- res_mat + cbind(mkPE1, mkPE2, mkPE3)
+  }
+  
+  CVE_mat <- sqrt(res_mat/506)
+  
+  plot(CVE_mat[,1], type="l")
+  lines(CVE_mat[,2], col="blue")
+  lines(CVE_mat[,3], col="red")
+  
+  K_opt <- apply(CVE_mat, 2, which.min)
+  CVE_value <- apply(CVE_mat, 2, min)
+  
+  result_df <- data.frame(K_opt=c(K_opt[1],
+                                  K_opt[2],
+                                  K_opt[3]),
+                          CVE_value=c(CVE_value[1],
+                                     CVE_value[2],
+                                     CVE_value[3]))
+  rownames(result_df) <- 1:3
+  
+  return(result_df)
+}
+
+res5 <- CVE_h(x,y)
+
+res5
 ```
 
-```{r}
 
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
-```
 
