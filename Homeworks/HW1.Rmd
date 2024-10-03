@@ -5,7 +5,7 @@ date: "2024-09-30"
 output:
   pdf_document:
     latex_engine: xelatex
-#mainfont: Nanum
+mainfont: NanumGothic
 ---
 
 ## Data
@@ -75,30 +75,6 @@ head(x, 3)
 
 ## Question 1.
 
-```{r, echo=F, eval=F}
-##### test chunk
-x0 <- x[1,]
-x0
-
-train <- x[-1,]
-dim(train)
-
-a <- matrix(rep(seq(10, 50, 10), 5), 5, 5, byrow = T)
-b <- matrix(rep(seq(1,5,1),5), nrow=5, byrow=T)
-a-b
-
-dif <- apply(abs(train-matrix(rep(x0, nrow(train)), nrow=nrow(train), byrow=T)), 1, sum)
-dif <- as.numeric(dif)
-
-sort(dif)
-close_dif <- order(dif, decreasing = F)[1:10]+1
-dif[177]
-train[177,] == x[178,]
-y[close_dif]
-
-dif2 <- apply((train-matrix(rep(x0, nrow(train)), nrow=nrow(train), byrow=T))^2, 1, sum)
-sqrt(dif2)
-```
 
 ```{r}
 test <- x[1,]
@@ -170,21 +146,6 @@ data.frame(l=1:3,fhat=c(fhat_1, fhat_2, fhat_3))
 
 ## Question 2.
 
-```{r, echo=F, eval=F}
-### test chunk
-set.seed(12345)
-tran <- sample(nrow(x), 400) # Randomly selected 400 samples
-te <- c(1:500)[-tran]
-
-train <- x[tran,]
-testset <- x[-tran,]
-y_te <- y[te]
-
-test <- testset[100,]
-fhat(dist_1, y[tran], K=1)
-```
-
-
 ```{r}
 set.seed(12345)
 tran <- sample(nrow(x), 400) # Randomly selected 400 samples
@@ -249,11 +210,12 @@ set.seed(1234)
 foldID <- sample(rep(1:10, length=nrow(x)))
 
 CVE <- function(x, y){
+  res_mat <- matrix(0, nrow=100, ncol=3)
   for (id in 1:10) {
-    res_mat <- matrix(0, nrow=100, ncol=3)
     
     train <- x[foldID!=id,]
     testset <- x[foldID==id,]
+    
     y_te <- y[foldID==id]
     
     K_list <- 1:100
@@ -303,9 +265,12 @@ CVE <- function(x, y){
 
 res3 <- CVE(x,y)
 
-plot(res3[[2]][,3], type="l", col="red")
+plot(res3[[2]][,3], type="l", col="red",
+     xlab="K", ylab="CVE", main="3 CVE(f) lines over K")
 lines(res3[[2]][,2], col="blue")
 lines(res3[[2]][,1])
+legend("topright", legend=c("dist3", "dist2", "dist1"), 
+       col=c("red", "blue", "black"), lty=1)
 
 res3[[1]]
 ```
@@ -325,8 +290,9 @@ set.seed(1234)
 foldID <- sample(rep(1:10, length=nrow(x)))
 
 CVE_g <- function(x, y){
+  res_mat <- matrix(0, nrow=100, ncol=3)
+  
   for (id in 1:10) {
-    res_mat <- matrix(0, nrow=100, ncol=3)
     
     train <- x[foldID!=id,]
     testset <- x[foldID==id,]
@@ -379,9 +345,12 @@ CVE_g <- function(x, y){
 
 res4 <- CVE_g(x,y)
 
-plot(res4[[2]][,3], type="l", col="red")
+plot(res4[[2]][,3], type="l", col="red",
+     xlab="K", ylab="CVE", main="3 CVE(g) lines over K")
 lines(res4[[2]][,2], col="blue")
 lines(res4[[2]][,1])
+legend("topright", legend=c("dist3", "dist2", "dist1"), 
+       col=c("red", "blue", "black"), lty=1)
 
 res4[[1]]
 ```
@@ -407,9 +376,8 @@ set.seed(1234)
 foldID <- sample(rep(1:10, length=nrow(x)))
 
 CVE_h <- function(x, y){
+  res_mat <- matrix(0, nrow=100, ncol=3)
   for (id in 1:10) {
-    res_mat <- matrix(0, nrow=100, ncol=3)
-    
     train <- x[foldID!=id,]
     testset <- x[foldID==id,]
     y_te <- y[foldID==id]
@@ -461,16 +429,21 @@ CVE_h <- function(x, y){
 
 res5 <- CVE_h(x,y)
 
-plot(res5[[2]][,3], type="l", col="red")
+plot(res5[[2]][,3], type="l", col="red",
+     xlab="K", ylab="CVE", main="3 CVE(h) lines over K")
 lines(res5[[2]][,2], col="blue")
 lines(res5[[2]][,1])
+legend("topright", legend=c("dist3", "dist2", "dist1"), 
+       col=c("red", "blue", "black"), lty=1)
 
 res5[[1]]
 ```
 
 ## Question 6.  
 
-![My Image](C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/스크린샷 2024-10-03 002959.png)
+![My Image](C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/결과테이블.png)
 
-* CVE 관점에선 fhat과 d1
-* but fhat은 
+##### 결과 해석
+* 본 결과의 최소 **CVE** 관점에서는 예측함수 **g**와 거리함수 **d3**의 조합이 가장 좋았다. 
+* 하지만 예측함수 **h**는 *test sample*과 더 가까울 수록 큰 가중치를 부여하여 주변 *target(crim)* 값들의 *test sample*의 가중평균을 예측값으로 사용하므로, 그래프를 비교하였을 때 **K**가 증가해도 가장 안정적인 예측 성능을 보였다. 또한 **h**는 거리함수 **d3**를 사용했을 때, 전반적으로 낮은 **CVE**값을 나타냈다.
+* 따라서 예측의 안정성까지 고려했을 때는 예측함수 **h**와 거리함수 **d3**를 조합한 방법을 사용하는 것이 가장 좋다.
