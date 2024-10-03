@@ -62,7 +62,7 @@ colnames(x)
 * **lstat**: 저소득층 인구 비율(백분율).
 * **medv**: 자가 소유 주택의 중위값(단위: 1,000달러).
 
-#### Goal  
+#### Goal    
 **Boston의 각 마을의 1인당 범죄율 예측**
 
 ```{r}
@@ -196,9 +196,13 @@ PE <- function(x, y) {
 
 res2 <- PE(x,y)
 
-plot(res2[[2]][,1], type="l")
+plot(res2[[2]][,1], type="l",
+     xlab="K", ylab="PE", main="3 PE(f) lines over K")
 lines(res2[[2]][,2], col="blue")
 lines(res2[[2]][,3], col="red")
+legend("topright", legend=c("dist1", "dist2", "dist3"), 
+       col=c("black", "blue", "red"), lty=1)
+
 
 res2[[1]]
 ```
@@ -269,8 +273,8 @@ plot(res3[[2]][,3], type="l", col="red",
      xlab="K", ylab="CVE", main="3 CVE(f) lines over K")
 lines(res3[[2]][,2], col="blue")
 lines(res3[[2]][,1])
-legend("topright", legend=c("dist3", "dist2", "dist1"), 
-       col=c("red", "blue", "black"), lty=1)
+legend("topright", legend=c("dist1", "dist2", "dist3"), 
+       col=c("black", "blue", "red"), lty=1)
 
 res3[[1]]
 ```
@@ -349,8 +353,9 @@ plot(res4[[2]][,3], type="l", col="red",
      xlab="K", ylab="CVE", main="3 CVE(g) lines over K")
 lines(res4[[2]][,2], col="blue")
 lines(res4[[2]][,1])
-legend("topright", legend=c("dist3", "dist2", "dist1"), 
-       col=c("red", "blue", "black"), lty=1)
+legend("topright", legend=c("dist1", "dist2", "dist3"), 
+       col=c("black", "blue", "red"), lty=1)
+
 
 res4[[1]]
 ```
@@ -433,17 +438,18 @@ plot(res5[[2]][,3], type="l", col="red",
      xlab="K", ylab="CVE", main="3 CVE(h) lines over K")
 lines(res5[[2]][,2], col="blue")
 lines(res5[[2]][,1])
-legend("topright", legend=c("dist3", "dist2", "dist1"), 
-       col=c("red", "blue", "black"), lty=1)
+legend("topright", legend=c("dist1", "dist2", "dist3"), 
+       col=c("black", "blue", "red"), lty=1)
 
 res5[[1]]
 ```
 
 ## Question 6.  
 
-![My Image](C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/결과테이블.png)
+![Summary](C:/Users/jongcheol/OneDrive/바탕 화면/Semester_2/Advanced-Datamining/Homeworks/결과테이블.png)
 
 ##### 결과 해석
 * 본 결과의 최소 **CVE** 관점에서는 예측함수 **g**와 거리함수 **d3**의 조합이 가장 좋았다. 
-* 하지만 예측함수 **h**는 *test sample*과 더 가까울 수록 큰 가중치를 부여하여 주변 *target(crim)* 값들의 *test sample*의 가중평균을 예측값으로 사용하므로, 그래프를 비교하였을 때 **K**가 증가해도 가장 안정적인 예측 성능을 보였다. 또한 **h**는 거리함수 **d3**를 사용했을 때, 전반적으로 낮은 **CVE**값을 나타냈다.
+* 하지만 예측함수 **h**는 *test sample*과 특징이 더 가까울 수록 큰 가중치를 부여하여, 주변 샘플들의  *target(crim)* 값 가중평균을 예측값으로 사용하므로, 그래프를 비교하였을 때 **K**가 증가해도 가장 안정적인 예측 성능을 보였다. 
+* 또한 **h**는 거리함수 **d3**를 사용했을 때, 전반적으로 낮은 **CVE**값을 나타냈다.
 * 따라서 예측의 안정성까지 고려했을 때는 예측함수 **h**와 거리함수 **d3**를 조합한 방법을 사용하는 것이 가장 좋다.
