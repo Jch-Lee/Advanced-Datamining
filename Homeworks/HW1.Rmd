@@ -3,8 +3,6 @@ title: "Homework01"
 author: "JongCheolLee"
 date: "2024-09-30"
 output:
-  html_document:
-    df_print: paged
   pdf_document:
     latex_engine: xelatex
 #mainfont: Nanum
@@ -470,5 +468,9 @@ lines(res5[[2]][,1])
 res5[[1]]
 ```
 
+## Question 6.  
 
+![My Image](C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/스크린샷 2024-10-03 002959.png)
 
+* CVE 관점에선 fhat과 d1
+* but fhat은 
