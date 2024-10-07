@@ -787,14 +787,141 @@ axis(1, at=cc, labels=g2$lambda[cc])
 
 ```
 
-```{r}
+### Survival Analysis
 
+```{r}
+library(ISLR2)
+data(BrainCancer)
 ```
 
 ```{r}
-
+BrainCancer[ ,7:8]
 ```
 
 ```{r}
+lapply(BrainCancer[ ,-c(5, 8)], table)
+```
+
+```{r}
+summary(BrainCancer[ , c(5, 8)])
+```
+
+```{r}
+attach(BrainCancer)
+plot(time, type="h", col=ifelse(status>0, "orange", "lightblue"),
+xlab="Patients", ylab="Survival time (Months)")
+legend("topleft", c("Uncensored", "Censored"), lty=1,
+col=c("orange", "lightblue"))
+```
+
+```{r}
+d <- sort(unique(time))
+d
+```
+
+```{r}
+q <- r <- NULL
+for (i in 1:length(d)) {
+  q[i] <- sum(time[status > 0] == d[i]) # 
+  r[i] <- sum(time >= d[i])
+}
+1-q/r # 케플런 마이어 추정치를 구하기 위함
+```
+
+```{r}
+data.frame(d, q, r, S=cumprod(1-q/r))
+```
+
+##### 패키지 사용
+
+```{r}
+library(survival)
+Surv(time, status)
+```
+
+* time과 status point를 함께 표현
+* +가 붙어있으면 censored
+
+```{r}
+fit <- survfit(Surv(time, status) ~ 1)
+data.frame(d=fit$time, q=fit$n.event, r=fit$n.risk, S=fit$surv)
+```
+
+```{r}
+plot(fit, col="blue", lty=1.5, xlab="Months",
+ylab="Estimated Probability of Survival")
+```
+
+### Log rank test
+
+```{r}
+library(survival)
+data(BrainCancer, package="ISLR2")
+attach(BrainCancer)
+
+lapply(BrainCancer[,c("sex", "diagnosis", "stereo")], table)
+```
+
+```{r}
+fit2 <- survfit(Surv(time, status) ~ sex)
+plot(fit2, col=c(2, 4), lty=1.5, xlab="Months",
+ylab="Estimated Probability of Survival")
+legend("topright", levels(sex), col=c(2, 4), lty=1.5)
 
 ```
+
+* sample의 생존확률 추정 결과 여자가 더 오래 산다.
+* 과연 통계적으로 유의미한 차이인가?(일반화할 수 있는가)
+
+```{r}
+survdiff(Surv(time, status) ~ sex)
+```
+
+```{r}
+fit3 <- survfit(Surv(time, status) ~ stereo)
+plot(fit3, col=c(2, 4), lty=1.5, xlab="Months",
+ylab="Estimated Probability of Survival")
+legend("topright", levels(stereo), col=c(2, 4), lty=1.5)
+```
+
+```{r}
+survdiff(Surv(time, status) ~ stereo)
+```
+
+### Regression Models with a Survival Response
+* Cox's Proportional Hazards Model
+
+```{r}
+library(survival)
+data(BrainCancer, package="ISLR2")
+attach(BrainCancer)
+```
+
+```{r}
+fit.sex <- coxph(Surv(time, status) ~ sex)
+summary(fit.sex)
+```
+
+```{r}
+fit.all <- coxph(Surv(time, status) ~ sex + diagnosis + loc
++ ki + gtv + stereo)
+fit.all
+```
+
+```{r}
+summary(fit.all)
+```
+
+```{r}
+TT <- data.frame(diagnosis=levels(diagnosis), sex=rep("Female",4),
+loc=rep("Supratentorial",4), ki=rep(mean(ki),4),
+gtv=rep(mean(gtv),4), stereo=rep("SRT",4))
+TT
+```
+
+```{r}
+SS <- survfit(fit.all, newdata=TT)
+plot(SS, xlab="Months", ylab="Survival Probability", col=2:5)
+legend("bottomleft", levels(diagnosis), col=2:5, lty=1.5)
+```
+
