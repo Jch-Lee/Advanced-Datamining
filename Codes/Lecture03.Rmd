@@ -1,0 +1,420 @@
+---
+title: "Lecture 03"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+data(Default)
+summary(Default)
+```
+
+```{r}
+attach(Default)
+balance
+```
+
+```{r}
+plot(income ~ balance, xlab="Balance", ylab="Income",
+pch=c(1,3)[unclass(default)],
+col=c("lightblue","red")[unclass(default)])
+```
+
+```{r}
+set.seed(1234)
+ss <- sample(which(default=="No"), sum(default=="Yes"))
+ss <- c(ss, which(default=="Yes"))
+us <- unclass(default[ss])
+plot(income[ss] ~ balance[ss], xlab="Balance", pch=c(1,3)[us],
+col=c("lightblue","red")[us], ylab="Income")
+```
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(balance~default, col=c("lightblue","red"), boxwex=0.5,
+xlab="Default", ylab="Balance")
+boxplot(income~default, col=c("lightblue","red"), boxwex=0.5,
+xlab="Default", ylab="Income")
+```
+
+```{r}
+ndef <- rep(0, length(default))
+ndef[default=="Yes"] <- 1
+g1 <- glm(ndef ~ balance)
+g2 <- glm(default ~ balance, family="binomial")
+par(mfrow=c(1,2))
+plot(balance, ndef, pch="|", col="orange", xlab="Balance",
+ylab="Probability of Default",ylim=c(-0.1,1.1))
+abline(h=c(0,1), lty=2)
+lines(balance, g1$fit, col="lightblue", lwd=2)
+plot(balance, as.numeric(default)-1, pch="|", col="orange",
+xlab="Balance", ylab="Probability of Default",
+ylim=c(-0.1,1.1))
+abline(h=c(0,1), lty=2)
+u <- order(balance)
+lines(balance[u], g2$fit[u], col="lightblue", lwd=3)
+
+```
+
+### Logistic Regression with glm function
+
+```{r}
+g2 <- glm(default ~ balance, family="binomial")
+summary(g2)$coef
+```
+
+```{r}
+## Fitted values
+g2$fit[1:10]
+```
+
+```{r}
+## inverse logistic function
+ilogit <- function(x, coef) {
+  exp(cbind(1, x) %*% coef) / (1 + exp(cbind(1, x) %*% coef))
+}
+cbind(g2$fit, ilogit(balance, g2$coef))[1:100,]
+```
+
+```{r}
+ilogit(1000, g2$coef)
+```
+
+```{r}
+g3 <- glm(default ~ student, family="binomial")
+summary(g3)$coef
+```
+
+```{r}
+## Student "Yes"
+ilogit(1, g3$coef)
+```
+
+```{r}
+## Student "No"
+ilogit(0, g3$coef)
+```
+
+```{r}
+g4 <- glm(default~ balance + income + student, family="binomial") # 여러 변수 사용
+round(summary(g4)$coef, 4)
+```
+
+```{r}
+yst <- g4$fit[student=="Yes"]
+nst <- g4$fit[student=="No"]
+plot(balance, g2$fit, col="white", xlab="Credit Card Balance",
+ylab="Default Rate")
+abline(h=0)
+abline(h=mean(yst), lty=2, col="orange")
+abline(h=mean(nst), lty=2, col="lightblue")
+u1 <- order(balance[student=="Yes"])
+u2 <- order(balance[student=="No"])
+lines(balance[student=="Yes"][u1], yst[u1], col="orange", lwd=2)
+lines(balance[student=="No"][u2], nst[u2], col="lightblue", lwd=2)
+
+```
+
+```{r}
+balance <- balance
+
+boxplot(balance ~ student, col=c("lightblue","orange"),
+xlab="Student Status", ylab="Credit Card Balance", boxwex=0.6)
+
+```
+
+```{r}
+ilogit(cbind(1500, 40, 1), g4$coef)
+```
+
+```{r}
+ilogit(cbind(1500, 40, 0), g4$coef)
+```
+
+```{r}
+xb <- predict(g4, data.frame(balance=1500, income=40, student="Yes"))
+exp(xb)/(1+exp(xb))
+```
+
+```{r}
+predict(g4, data.frame(balance=1500, income=40, student="Yes"),type="response")
+```
+
+```{r}
+set.seed(1111)
+n <- nrow(Default)
+train <- sample(1:n, n*0.7)
+test <- setdiff(1:n, train)
+g1 <- glm(default ~ balance, family="binomial", subset=train)
+g2 <- glm(default ~ student, family="binomial", subset=train)
+g3 <- glm(default ~ income, family="binomial", subset=train)
+g4 <- glm(default~ balance+student+income, family="binomial",
+subset=train)
+miss <- NULL
+for (k in 1:4) {
+  g <- get(paste("g", k, sep=""))
+  pred <- predict(g, Default, type="response")[test]
+  yhat <- rep(0, length(test))
+  yhat[pred > 0.5] <- 1
+  miss[k] <- mean(yhat!=as.numeric(default[test])-1)
+}
+miss
+
+```
+
+```{r}
+install.packages("nnet")
+```
+
+```{r}
+library(HDclassif)
+library(nnet)
+data(wine)
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 
+                      'Alcalinity', 'Magnesium', 'Phenols', 
+                      'Flavanoids', 'Nonflavanoids',
+                      'Proanthocyanins', 'Color', 'Hue', 
+                      'Dilution', 'Proline')
+wine$Type <- as.factor(wine$Type)
+str(wine)
+```
+
+```{r}
+summary(wine)
+```
+
+```{r}
+plot(wine[, -1], col=as.numeric(wine$Type) + 1)
+```
+
+```{r}
+plot(wine[, 2:7], col=as.numeric(wine$Type) + 1)
+```
+
+```{r}
+plot(wine[, 8:14], col=as.numeric(wine$Type) + 1)
+```
+
+```{r}
+fit <- multinom(Type ~ ., data=wine, trace=FALSE)
+summary(fit)
+```
+
+```{r}
+z <- coef(summary(fit))/summary(fit)$standard.errors
+pnorm(abs(z), lower.tail=FALSE)*2
+```
+
+```{r}
+set.seed(1)
+u <- sort(sample(1:nrow(wine), 10))
+fitted(fit)[u,]
+```
+
+```{r}
+predict(fit, wine, type="prob")[u,]
+```
+
+```{r}
+prob0 <- predict(fit, wine, type="prob")
+pred0 <- apply(prob0, 1, which.max)
+table(pred0, wine$Type)
+
+```
+
+```{r}
+pred0a <- predict(fit, wine, type="class")
+table(pred0a, wine$Type)
+
+```
+
+```{r}
+set.seed(1111)
+n <- nrow(wine)
+train <- sample(1:n, round(n*0.7))
+test <- setdiff(1:n, train)
+fit1 <- multinom(Type ~ Alcohol + Color, data=wine,
+subset=train)
+summary(fit1)
+
+```
+
+```{r}
+pred1 <- predict(fit1, wine, type="class")
+tab1 <- table(pred1[test], wine$Type[test])
+1-sum(diag(tab1))/sum(tab1) # 비대각원소=오분류
+```
+
+```{r}
+fit2 <- multinom(Type ~ ., data=wine, subset=train)
+summary(fit2)
+```
+
+```{r}
+pred2 <- predict(fit2, wine, type="class")
+tab2 <- table(pred2[test], wine$Type[test])
+1-sum(diag(tab2))/sum(tab2)
+```
+
+```{r}
+set.seed(12345)
+miss <- NULL
+for (k in 1:100) {
+  train <- sample(1:n, round(n*0.7))
+  test <- setdiff(1:n, train)
+  g <- multinom(Type ~ ., data=wine, subset=train, trace=FALSE)
+  pred <- predict(g, wine, type="class")
+  tab <- table(pred[test], wine$Type[test])
+  miss[k] <- 1-sum(diag(tab))/sum(tab)
+}
+summary(miss)
+
+```
+
+```{r}
+hist(miss, main="Classification Error Rate", col="orange")
+```
+
+### LDA
+
+```{r}
+x <- seq(-5, 5, 0.1)
+plot(x, dnorm(x, -1.5, 1), type="l", col="darkgreen", xlab="",
+ylab="", yaxt="n", xlim=c(-5,5), lwd=2)
+lines(x, dnorm(x, 1.5, 1), col="red", lwd=2)
+abline(v=0, lwd=3, lty=2)
+```
+
+```{r}
+x1 <- rnorm(20, -1.5, 1)
+x2 <- rnorm(20, 1.5, 1)
+hist(x1, col=rgb(0.4,1,0,0.8), breaks=10, xlab="", ylab="",
+main="", xlim=c(-4,4))
+hist(x2, col=rgb(0.7,0,0,0.7), breaks=10, add=T)
+abline(v=0, lwd=3, lty=2)
+abline(v=(mean(x1)+mean(x2))/2, lwd=3, lty=1)
+legend("topleft", c("True", "Estimated"), lty=c(2,1), lwd=1,
+bty="n", cex=0.9)
+
+```
+
+```{r}
+## Open the iris dataset
+data(iris)
+str(iris)
+```
+
+```{r}
+summary(iris)
+```
+
+```{r}
+plot(iris[, -5], col=as.numeric(iris$Species) + 1)
+```
+
+```{r}
+## Apply LDA for iris data
+library(MASS)
+g <- lda(Species ~., data=iris)
+plot(g)
+```
+
+```{r}
+plot(g, dimen=1)
+```
+
+```{r}
+## Compute misclassification error for training sets
+pred <- predict(g)
+table(pred$class, iris$Species)
+```
+
+```{r}
+mean(pred$class!=iris$Species)
+```
+
+```{r}
+## Randomly separate training sets and test sets
+set.seed(1234)
+tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+g <- lda(Species ~., data=iris, subset=tran)
+
+## Compute misclassification error for test sets
+pred <- predict(g, iris)$class[-tran]
+test <- iris$Species[-tran]
+table(pred, test)
+```
+
+```{r}
+mean(pred!=test)
+```
+
+```{r}
+## Posterior probability
+post <- predict(g, iris)$posterior[-tran,] # test sample들의 각 클래스 확률 계산
+post[1:10,]
+```
+
+```{r}
+apply(post, 1, which.max)
+```
+
+```{r}
+as.numeric(pred)
+```
+
+### LDA vs Multinom
+
+```{r}
+library(nnet)
+set.seed(1234)
+K <- 100
+RES <- array(0, c(K, 2))
+for (i in 1:K) {
+  tran.num <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+  tran <- as.logical(rep(0, nrow(iris)))
+  tran[tran.num] <- TRUE
+  g1 <- lda(Species ~., data=iris, subset=tran)
+  g2 <- multinom(Species ~., data=iris, subset=tran, trace=FALSE)
+  pred1 <- predict(g1, iris[!tran,])$class
+  pred2 <- predict(g2, iris[!tran,])
+  RES[i, 1] <- mean(pred1!=iris$Species[!tran])
+  RES[i, 2] <- mean(pred2!=iris$Species[!tran])
+}
+
+apply(RES, 2, mean)
+```
+
+```{r}
+data(wine)
+colnames(wine) <- c('Type', 'Alcohol', 'Malic', 'Ash', 
+                      'Alcalinity', 'Magnesium', 'Phenols', 
+                      'Flavanoids', 'Nonflavanoids',
+                      'Proanthocyanins', 'Color', 'Hue', 
+                      'Dilution', 'Proline')
+wine$Type <- as.factor(wine$Type)
+
+
+set.seed(1111)
+RES2 <- array(0, c(K, 2))
+for (i in 1:K) {
+  tran.num <- sample(nrow(wine), size=floor(nrow(wine)*2/3))
+  tran <- as.logical(rep(0, nrow(wine)))
+  tran[tran.num] <- TRUE
+  g1 <- lda(Type ~., data=wine, subset=tran)
+  g2 <- multinom(Type ~., data=wine, subset=tran, trace=FALSE)
+  pred1 <- predict(g1, wine[!tran,])$class
+  pred2 <- predict(g2, wine[!tran,])
+  RES2[i, 1] <- mean(pred1!=wine$Type[!tran])
+  RES2[i, 2] <- mean(pred2!=wine$Type[!tran])
+}
+apply(RES2, 2, mean)
+
+```
+
+```{r}
+
+```
+

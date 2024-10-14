@@ -925,3 +925,32 @@ plot(SS, xlab="Months", ylab="Survival Probability", col=2:5)
 legend("bottomleft", levels(diagnosis), col=2:5, lty=1.5)
 ```
 
+
+```{r}
+library(glmnet)
+sum(is.na(BrainCancer))
+BC <- na.omit(BrainCancer)
+x0 <- model.matrix(~., BC)[,-c(1,10,11)]
+y <- Surv(BC$time, BC$status)
+```
+
+```{r}
+x0[1:3,]
+```
+
+```{r}
+fun <- function(t) sqrt(var(t)*(length(t)-1)/length(t))
+sdx <- matrix(apply(x0, 2, fun), dim(x0)[2], dim(x0)[1])
+x <- x0/t(sdx) # scaling(LASSO)
+g <- glmnet(x, y, alpha=1, family="cox")
+par(mfrow=c(1,2))
+plot(g, "lambda", label=TRUE)
+plot(g, "norm", label=TRUE)
+
+```
+
+```{r}
+set.seed(1234)
+gcv <- cv.glmnet(x, y, alpha=1, family="cox", nfolds=5)
+plot(gcv)
+```
