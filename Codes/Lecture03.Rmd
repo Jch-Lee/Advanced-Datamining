@@ -2,7 +2,7 @@
 title: "Lecture 03"
 author: "Lee JongCheol"
 date: "`r Sys.Date()`"
-output: html_document
+outp html_document
 ---
 
 ```{r}
@@ -414,7 +414,248 @@ apply(RES2, 2, mean)
 
 ```
 
+### LDA on Default Data
+
 ```{r}
+library(ISLR)
+data(Default)
+attach(Default)
+library(MASS)
+g <- lda(default~., data=Default)
+pred <- predict(g, default)
+table(pred$class, default)
+```
+
+```{r}
+mean(pred$class!=default)
+```
+
+### Changes in Errors along with Different Thresholds
+
+```{r}
+thre <- seq(0,1,0.01)
+res <- matrix(NA, length(thre), 3)
+
+## Compute overall error, false positives, false negatives
+for (i in 1:length(thre)) {
+  decision <- rep("No", length(default))
+  decision[pred$posterior[,2] >= thre[i]] <- "Yes"
+  res[i, 1] <- mean(decision != default)
+  res[i, 2] <- mean(decision[default=="No"]=="Yes")
+  res[i, 3] <- mean(decision[default=="Yes"]=="No")
+}
+k <- 1:51
+
+matplot(thre[k], res[k,], col=c(1,"orange",4), lty=c(1,4,2),
+type="l", xlab="Threshold", ylab="Error Rate", lwd=2)
+legend("top", c("Overall Error", "False Positive",
+"False Negative"), col=c(1,"orange",4), lty=c(1,4,2),
+cex=1.2)
 
 ```
 
+```{r}
+apply(res, 2, which.min)
+```
+
+### ROC curve
+
+```{r}
+thre <- seq(0,1,0.001)
+Sen <- Spe <- NULL
+RES <- matrix(NA, length(thre), 4)
+colnames(RES) <- c("TP", "TN", "FP", "FN")
+
+for (i in 1:length(thre)) {
+  decision <- rep("No", length(default))
+  decision[pred$posterior[,2] >= thre[i]] <- "Yes"
+  Sen[i] <- mean(decision[default=="Yes"] == "Yes")
+  Spe[i] <- mean(decision[default=="No"] == "No")
+  RES[i,1] <- sum(decision[default=="Yes"] == "Yes")
+  RES[i,2] <- sum(decision[default=="No"] == "No")
+  RES[i,3] <- sum(decision=="Yes") - RES[i,1]
+  RES[i,4] <- sum(default=="Yes") - RES[i,1]
+}
+
+plot(1-Spe, Sen, type="b", pch=20, xlab="False positive rate",
+col="darkblue", ylab="True positive rate", main="ROC Curve")
+abline(0, 1, lty=3, col="gray")
+
+```
+
+```{r}
+TPR <- RES[,1] / (RES[,1] + RES[,4])
+TNR <- RES[,2] / (RES[,2] + RES[,3])
+plot(1-TNR, TPR, type="b", pch=20, xlab="False positive rate",
+col="darkblue", ylab="True positive rate", main="ROC Curve")
+abline(0, 1, lty=3, col="gray")
+```
+
+```{r}
+PPV <- RES[,1] / (RES[,1] + RES[,3])
+NPV <- RES[,2] / (RES[,2] + RES[,4])
+MAT <- cbind(TPR, TNR, PPV, NPV)
+matplot(thre, MAT, type="l", lty=c(1,2,1,2), col=c(1,1,2,2),
+xlab="thresholds", ylab="")
+legend("right", c("TPR", "TNR", "PPV", "NPV"),
+lty=c(1,2,1,2), col=c(1,1,2,2), bty="n", cex=1.2)
+```
+
+```{r}
+library(ROCR)
+## Compute ROC curve
+label <- factor(default, levels=c("Yes","No"),
+labels=c("TRUE","FALSE"))
+preds <- prediction(pred$posterior[,2], label)
+perf <- performance(preds, "tpr", "fpr" )
+plot(perf, lwd=4, col="darkblue")
+abline(a=0, b=1, lty=2)
+```
+
+```{r}
+slotNames(perf)
+```
+
+```{r}
+k <- 1:100
+list(perf@x.name, perf@x.values[[1]][k])
+list(perf@y.name, perf@y.values[[1]][k])
+list(perf@alpha.name, perf@alpha.values[[1]][k])
+```
+
+```{r}
+## Compute AUC
+performance(preds, "auc")@y.values
+```
+
+### LDA vs. QDA: Default Data
+
+```{r}
+library(MASS)
+set.seed(1234)
+n <- nrow(Default)
+train <- sample(1:n, n*0.7)
+test <- setdiff(1:n, train)
+```
+
+```{r}
+## Classification error rate of LDA
+g1 <- lda(default~., data=Default, subset=train)
+pred1 <- predict(g1, Default)
+table(pred1$class[test], Default$default[test])
+```
+
+```{r}
+mean(pred1$class[test]!=Default$default[test])
+```
+
+```{r}
+## Classification error rate of QDA
+g2 <- qda(default~., data=Default, subset=train)
+pred2 <- predict(g2, Default)
+table(pred2$class[test], Default$default[test])
+```
+
+```{r}
+mean(pred2$class[test]!=Default$default[test])
+```
+
+```{r}
+## AUC comparison between LDA and QDA
+library(ROCR)
+label <- factor(default[test], levels=c("Yes","No"),
+labels=c("TRUE","FALSE"))
+preds1 <- prediction(pred1$posterior[test,2], label)
+preds2 <- prediction(pred2$posterior[test,2], label)
+
+performance(preds1, "auc")@y.values
+```
+
+```{r}
+performance(preds2, "auc")@y.values
+```
+
+```{r}
+set.seed(123)
+N <- 100
+CER <- AUC <- matrix(NA, N, 2)
+
+for (i in 1:N) {
+  train <- sample(1:n, n*0.7)
+  test <- setdiff(1:n, train)
+  y.test <- Default$default[test]
+  g1 <- lda(default~., data=Default, subset=train)
+  g2 <- qda(default~., data=Default, subset=train)
+  pred1 <- predict(g1, Default)
+  pred2 <- predict(g2, Default)
+  CER[i,1] <- mean(pred1$class[test]!=y.test)
+  CER[i,2] <- mean(pred2$class[test]!=y.test)
+  label <- factor(default[test], levels=c("Yes","No"),
+  labels=c("TRUE","FALSE"))
+  preds1 <- prediction(pred1$posterior[test,2], label)
+  preds2 <- prediction(pred2$posterior[test,2], label)
+  AUC[i,1] <- as.numeric(performance(preds1, "auc")@y.values)
+  AUC[i,2] <- as.numeric(performance(preds2, "auc")@y.values)
+}
+
+apply(CER, 2, mean)
+```
+
+```{r}
+apply(AUC, 2, mean)
+```
+
+### Naive Bayes
+
+```{r}
+data(iris)
+library(e1071)
+g1 <- naiveBayes(Species ~ ., data = iris)
+g1 <- naiveBayes(iris[,-5], iris[,5])
+pred <- predict(g1, iris[,-5])
+table(pred, iris[,5])
+```
+
+```{r}
+mean(pred!=iris$Species)
+```
+
+```{r}
+## Randomly separate training sets and test sets
+set.seed(1234)
+tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+## Compute misclassification error for test sets
+g2 <- naiveBayes(Species ~ ., data=iris, subset=tran)
+pred2 <- predict(g2, iris)[-tran]
+test <- iris$Species[-tran]
+table(pred2, test)
+```
+
+```{r}
+mean(pred2!=test)
+```
+
+```{r}
+data(Default)
+set.seed(1234)
+n <- nrow(Default)
+train <- sample(1:n, n*0.7)
+test <- setdiff(1:n, train)
+g3 <- naiveBayes(default ~ ., data=Default, subset=train)
+pred3 <- predict(g3, Default)[test]
+table(pred3, Default$default[test])
+```
+
+```{r}
+mean(pred3!=Default$default[test])
+```
+
+```{r}
+## AUC of Naive Bayes
+library(ROCR)
+label <- factor(default[test], levels=c("Yes","No"),
+labels=c("TRUE","FALSE"))
+pred4 <- predict(g3, Default, type="raw")
+preds <- prediction(pred4[test, 2], label)
+performance(preds, "auc")@y.values
+```
