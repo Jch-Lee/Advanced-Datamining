@@ -659,3 +659,59 @@ pred4 <- predict(g3, Default, type="raw")
 preds <- prediction(pred4[test, 2], label)
 performance(preds, "auc")@y.values
 ```
+
+### KNN method
+
+```{r}
+library(class)
+data(iris)
+set.seed(1234)
+tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+tran.x <- iris[tran, -5]
+test.x <- iris[-tran, -5]
+tran.y <- iris$Species[tran]
+test.y <- iris$Species[-tran]
+
+
+knn.pred <- knn(tran.x, test.x, tran.y, k=3)
+table(knn.pred, test.y)
+```
+
+```{r}
+mean(test.y!=knn.pred)
+```
+
+```{r}
+knn.pred <- knn(tran.x, test.x, tran.y, k=13)
+table(knn.pred, test.y)
+```
+
+```{r}
+mean(test.y!=knn.pred)
+```
+
+```{r}
+set.seed(1)
+K <- 50
+k <- 1:50
+mis <- matrix(0, K, length(k))
+for (i in 1:K) {
+  tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+  tran.x <- iris[tran, -5]
+  test.x <- iris[-tran, -5]
+  tran.y <- iris$Species[tran]
+  test.y <- iris$Species[-tran]
+  for (j in 1:length(k)) {
+    knn.pred <- knn(tran.x, test.x, tran.y, k=k[j])
+    mis[i, j] <- mean(test.y!=knn.pred)
+  }
+}
+err <- apply(mis, 2, mean)
+plot(k, err, type="b", xlab="k", ylab="Mis-classification Error",
+col=2, pch=20)
+
+```
+
+```{r}
+which.min(err)
+```
