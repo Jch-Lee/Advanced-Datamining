@@ -334,17 +334,17 @@ set100 <- apply(set100, 2, sample)
 ```
 
 ```{r}
-res6_D1 <- matrix()
-res6_D2 <- matrix()
+res6_D1 <- matrix(0, nrow = 18, ncol=100)
+res6_D2 <- matrix(0, nrow = 18, ncol=100)
 
 for (i in 1:100) {
-  x_tran <- x[set100[,1]=="tran",]
-  x_vald <- x[set100[,1]=="vald",]
-  x_test <- x[set100[,1]=="test",]
+  x_tran <- x[set100[,i]=="tran",]
+  x_vald <- x[set100[,i]=="vald",]
+  x_test <- x[set100[,i]=="test",]
   
-  y_tran <- y[set100[,1]=="tran"]
-  y_vald <- y[set100[,1]=="vald"]
-  y_test <- y[set100[,1]=="test"]
+  y_tran <- y[set100[,i]=="tran"]
+  y_vald <- y[set100[,i]=="vald"]
+  y_test <- y[set100[,i]=="test"]
   
   lr1 <- glm(y_tran ~ ., family="binomial",
              data = data.frame(x_tran, y_tran))
@@ -594,12 +594,20 @@ for (i in 1:100) {
   D1_knn2_4 <- D1_func(y_test, knn5_2_p_test)
   D2_knn2_4 <- D2_func(y_test, knn5_2_p_test)
   
-  res6_D1[15,i] <- D1_knn1_4
-  res6_D2[15,i] <- D2_knn1_4
+  res6_D1[17,i] <- D1_knn1_4
+  res6_D2[17,i] <- D2_knn1_4
   
-  res6_D1[16,i] <- D1_knn2_4
-  res6_D2[16,i] <- D2_knn2_4
+  res6_D1[18,i] <- D1_knn2_4
+  res6_D2[18,i] <- D2_knn2_4
   ###########
-  res6
 }
+
+res6_D1_mean <- apply(res6_D1, 1, mean)
+res6_D2_mean <- apply(res6_D2, 1, mean)
+
+res <- cbind(c("LR", "LDA", "QDA", "NB", "RG1", "RG2", "LS1", "LS2",
+              "LR1", "LDA1", "QDA1", "NB1", "LR2", "LDA2", "QDA2",
+              "NB2", "KNN1", "KNN2"),res6_D1_mean, res6_D2_mean)
+
+write.csv(res, file = "HW2_result.csv", row.names = F, na = "")
 ```
