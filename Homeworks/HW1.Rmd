@@ -5,7 +5,7 @@ date: "2024-09-30"
 output:
   pdf_document:
     latex_engine: xelatex
-mainfont: NanumGothic
+mainfont: MalgunGothic
 ---
 
 ## Data
@@ -446,10 +446,11 @@ res5[[1]]
 
 ## Question 6.  
 
-![Summary](C:/Users/jongcheol/OneDrive/바탕 화면/Semester_2/Advanced-Datamining/Homeworks/결과테이블.png)
+![Summary](C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/결과테이블.png)
 
 ##### 결과 해석
-* 본 결과의 최소 **CVE** 관점에서는 예측함수 **g**와 거리함수 **d3**의 조합이 가장 좋았다. 
-* 하지만 예측함수 **h**는 *test sample*과 특징이 더 가까울 수록 큰 가중치를 부여하여, 주변 샘플들의  *target(crim)* 값 가중평균을 예측값으로 사용하므로, 그래프를 비교하였을 때 **K**가 증가해도 가장 안정적인 예측 성능을 보였다. 
+* 본 교차검증 결과의 최소 **CVE** 관점에서는 예측함수 **g**와 거리함수 **d3**의 조합이 가장 좋았다. 
+* 하지만 **f**와 **g**는 **K**가 변함에 따라 **CVE**가 다소 불안정하여, K에 민감하다고 볼 수 있다. 이는 새로운 데이터에 대해 모델의 성능이 불안정해지는 문제를 초래할 수 있다.
+* 반면 예측함수 **h**는 *test sample*과 특징이 더 가까울 수록 큰 가중치를 부여하여, 주변 샘플들의 *target(crim)* 가중평균을 예측값으로 사용하므로 그래프를 비교하였을 때 **K**가 증가해도 가장 안정적인 예측 성능을 보였다.  즉, **CVE**가 극도로 낮진 않더라도 새로운 *sample*의 예측을 다른 함수보다 더 안정적으로 수행할 수 있다.
 * 또한 **h**는 거리함수 **d3**를 사용했을 때, 전반적으로 낮은 **CVE**값을 나타냈다.
-* 따라서 예측의 안정성까지 고려했을 때는 예측함수 **h**와 거리함수 **d3**를 조합한 방법을 사용하는 것이 가장 좋다.
+* 결론적으로 예측의 안정성(일반화 성능)까지 고려했을 때는 예측함수 **h**와 거리함수 **d3**를 조합한 모델이 가장 좋다.
