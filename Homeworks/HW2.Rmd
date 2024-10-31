@@ -1,0 +1,141 @@
+---
+title: "HW2"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+data(College)
+x <- scale(College[,-1])
+y <- College$Private
+```
+
+```{r}
+set.seed(12345)
+set <- sample(rep(c("tran", "vald", "test"), length=nrow(x)))
+```
+
+```{r}
+x_tran <- x[set=="tran",]
+x_val <- x[set=="vald",]
+x_test <- x[set=="test",]
+
+y_tran <- y[set=="tran"]
+y_val <- y[set=="vald"]
+y_test <- y[set=="test"]
+
+y_val
+```
+
+```{r}
+D1_func <- function(y, p) {
+  (-1/2)*mean((y=="Yes")*log(p) + (y=="No")*log(1-p))
+}
+  # p: Yes의 확률
+
+D2_func <- function(y, p) {
+  m0 <- sum(y=="No")
+  m <- sum(y=="Yes")
+  
+  pi <- p[y=="No"]
+  pj <- p[y=="Yes"]
+  
+  res <- 0
+  for (i in 1:length(pi)) {
+    for (j in 1:length(pj)) {
+      res <- res + (pi[i] > pj[j]) + 1/2*(pi[i] == pj[j])
+    }
+  }
+  res <- 1/(m*(m-m0))*res
+  return(res)
+}
+```
+
+```{r}
+dim(x)[1] == length(y)
+```
+
+```{r}
+head(x,3)
+```
+
+### 1.
+
+```{r}
+lr1 <- glm(y_tran ~ x_tran, family="binomial")
+lda1 <- lda(y_tran ~ x_tran)
+qda1 <- qda(y_tran ~ x_tran)
+
+library(e1071)
+nb1 <- naiveBayes(x_tran, y_tran)
+```
+
+```{r}
+lr1$coefficients
+plot(cbind(rep(1, ncol(x_tran)), x_tran)%*%lr1$coefficients, lr1$fitted.values)
+```
+
+```{r}
+lr1_z_test <- predict(lr1, data.frame(x_test))
+lr1_p_test <- 1/(1+exp(-lr1_y_test))
+lr1_p_test <- pmin(pmax(lr1_p_test, 1e-10), 1-(1e-10))
+
+D1_func(y_test, lr1_p_test)
+D2_func(y_test, lr1_p_test)
+```
+
+```{r}
+predict(lda1, data.frame(x_tran))$class == y_tran
+```
+
+```{r}
+lda1_p_test <- predict(lda1, data.frame(x_test))$posterior[,2]
+lda1_p_test <- pmin(pmax(lda1_p_test, 1e-10), 1-(1e-10))
+
+D1_func(y_test, lda1_p_test)
+D2_func(y_test, lda1_p_test)
+```
+
+```{r}
+qda1_p_test <- predict(qda1, data.frame(x_test))$posterior[,2]
+qda1_p_test <- pmin(pmax(qda1_p_test, 1e-10), 1-(1e-10))
+
+D1_func(y_test, qda1_p_test)
+D2_func(y_test, qda1_p_test)
+```
+
+```{r}
+nb1_p_test <- predict(nb1, data.frame(x_test), type = "raw")[,2]
+nb1_p_test <- pmin(pmax(nb1_p_test, 1e-10), 1-(1e-10))
+
+D1_func(y_test, nb1_p_test)
+D2_func(y_test, nb1_p_test)
+```
+
+### 2.
+
+```{r}
+library(glmnet)
+lam1 <- 10^seq(-3, -1.5, length.out=100)
+
+ridgelr2 <- glmnet(x_tran, y_tran, alpha=0, lambda=lam1, family="binomial")
+```
+
+```{r}
+ridgelr2_z_val <- predict(ridgelr2, x_val)
+ridgelr2_p_val <- 1/(1+exp(-ridgelr2_z_val))
+ridgelr2_p_val <- pmin(pmax(ridgelr2_p_val, 1e-10), 1-(1e-10))
+
+D1_vec2 <- c()
+D2_vec2 <- c()
+
+for (i in 1:100) {
+  D1_vec2[i] <- D1_func(y_val, ridgelr2_p_val[,i])
+  D2_vec2[i] <- D2_func(y_val, ridgelr2_p_val[,i])
+}
+
+which.maxD1_vec2
+D2_vec2
+```

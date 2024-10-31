@@ -17,9 +17,14 @@ B <- matrix(0, 100, length(pp))
 for (i in 1:100) { # 100번 반복하며 추정
   for (j in 1:length(pp)) {
     beta <- rep(0, pp[j])
-    beta[1] <- 1 # Beta1 외의 가중치는 모두 0. Bias = E(Beta1_hat) - 1
-    x <- matrix(rnorm(n*pp[j]), n, pp[j])
+    beta[1] <- 1 # 실제 가중치 Beta1 외의 가중치는 모두 0. Bias = E(Beta1_hat) - 1
+    x <- matrix(rnorm(n*pp[j]), n, pp[j]) # random data 생성
+    
+    # if ((j==1)&(i==1)) print(x)
+    
     y <- x %*% beta + rnorm(n) # True Linear Model
+      # beta가 1,0,...,0 이므로 x*beta = x[,1]
+    # if ((j==1)&(i==1)) print(x %*% beta == x[,1])
     g <- lm(y~x) # Estimation
     B[i,j] <- g$coef[2] # 추정한 계수들 중, Beta1_hat만 저장
   }
@@ -55,6 +60,7 @@ sum(is.na(Hitters$Salary))
 
 ```{r}
 Hitters <- na.omit(Hitters)
+# na.omit: 결측값 행 완전 제거
 ```
 
 ```{r}
@@ -69,6 +75,7 @@ sum(is.na(Hitters))
 library(leaps)
 fit <- regsubsets(Salary ~ ., Hitters)
   # best regression subset을 고르는 함수
+  # nvmax: 선택할 최대 변수 개수를 지정합니다.
 summary(fit)
 ```
 
@@ -122,7 +129,6 @@ points(w1, sg.rss[w1], pch="x", col="blue", cex=2)
 plot(1:19, sg.rsq, type="b", xlab="Number of Predictors",
 ylab=expression(R^2), col=2, pch=19)
 points(w2, sg.rsq[w2], pch="x", col="blue", cex=2)
-
 ```
 
 * RSS, R^2의 특징은 모델에 포함되는 변수를 늘릴수록 무조건 줄어든다.
@@ -271,11 +277,11 @@ apply(ERR, 2, which.min)
 ```{r}
 ## Define new "predict" function on regsubset
 predict.regsubsets <- function(object, newdata, id, ...) {
-form <- as.formula(object$call[[2]])
-mat <- model.matrix(form, newdata)
-coefi <- coef(object, id=id)
-xvars <- names(coefi)
-mat[, xvars] %*% coefi
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id=id)
+  xvars <- names(coefi)
+  mat[, xvars] %*% coefi
 }
 set.seed(1)
 K <- 10

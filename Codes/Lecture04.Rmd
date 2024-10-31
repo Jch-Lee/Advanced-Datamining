@@ -1,0 +1,264 @@
+---
+title: "Lecture04"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+### Polynomial Regression
+
+```{r}
+library (ISLR)
+attach (Wage)
+str(Wage)
+```
+
+```{r}
+## Orthogonal polynomials:
+## Each column is a linear orthogonal combination of
+## age, age^2, age^3 and age^4
+fit <- lm(wage ~ poly(age, 4), data=Wage)
+summary(fit)
+```
+
+```{r}
+## Direct power of age
+fit2 <- lm(wage ~ poly(age, 4, raw=T), data=Wage)
+summary(fit2)
+```
+
+```{r}
+fit2a <- lm(wage ~ age + I(age^2) + I(age^3) + I(age^4), Wage)
+fit2b <- lm(wage ~ cbind(age, age ^2, age^3, age^4), Wage)
+```
+
+```{r}
+round(data.frame(fit=coef(fit), fit2=coef(fit2),
+      fit2a=coef(fit2a), fit2b=coef(fit2b)), 5)
+```
+
+```{r}
+age.grid <- seq(min(age), max(age))
+age.grid
+```
+
+```{r}
+preds <- predict(fit, newdata=list(age=age.grid), se=TRUE)
+se.bands <- cbind(preds$fit+2*preds$se.fit, preds$fit-2*
+                    preds$se.fit)
+
+plot(age, wage, xlim=range(age), cex=.5, col="darkgrey")
+title("Degree-4 Polynomial", outer=T)
+lines(age.grid, preds$fit, lwd=2, col="darkblue")
+matlines(age.grid, se.bands, lwd=2, col="darkblue", lty=2)
+```
+
+```{r}
+## Orthogonal vs. Non-orthogonal polynomial regression
+preds2 <- predict(fit2, newdata=list(age=age.grid), se=TRUE)
+data.frame(fit=preds$fit, fit2=preds2$fit)
+sum(abs(preds$fit-preds2$fit))
+```
+
+```{r}
+## Anova test to find the optimal polynomial degree
+fit.1 <- lm(wage ~ age, data=Wage)
+fit.2 <- lm(wage ~ poly(age, 2), data=Wage)
+fit.3 <- lm(wage ~ poly(age, 3), data=Wage)
+fit.4 <- lm(wage ~ poly(age, 4), data=Wage)
+fit.5 <- lm(wage ~ poly(age, 5), data=Wage)
+g <- anova(fit.1, fit.2, fit.3, fit.4, fit.5)
+g
+```
+
+```{r}
+## Perform T-test
+coef(summary(fit.5))
+round(coef(summary(fit.5)), 5)
+```
+
+```{r}
+## T-test^2 = F-test
+summary(fit.5)$coef[-c(1, 2), 3]
+summary(fit.5)$coef[-c(1, 2), 3]^2
+g$F[-1]
+```
+
+```{r}
+## Covariate effect
+fit.1 <- lm(wage ~ education + age , data=Wage)
+fit.2 <- lm(wage ~ education + poly(age, 2), data=Wage)
+fit.3 <- lm(wage ~ education + poly(age, 3), data=Wage)
+fit.4 <- lm(wage ~ education + poly(age, 4), data=Wage)
+anova(fit.1, fit.2, fit.3, fit.4)
+```
+
+```{r}
+## 10-fold cross-validation to choose the optimal polynomial
+set.seed(1111)
+N <- 10 ## simulation replications
+K <- 10 ## 10-fold CV
+CVE <- matrix(0, N, 10)
+
+for (k in 1:N) {
+  gr <- sample(rep(seq(K), length=nrow(Wage)))
+  pred <- matrix(NA, nrow(Wage), 10)
+  for (i in 1:K) {
+    tran <- (gr != i)
+    test <- (gr == i)
+    for (j in 1:10) {
+      g <- lm(wage ~ poly(age, j), data=Wage, subset=tran)
+      yhat <- predict(g, data.frame(poly(age, j)))
+      mse <- (Wage$wage - yhat)^2
+      pred[test, j] <- mse[test]
+    }
+  }
+  CVE[k, ] <- apply(pred, 2, mean)
+}
+
+RES <- apply(CVE, 2, mean)
+RES
+```
+
+```{r}
+par(mfrow=c(1,2))
+matplot(t(CVE), type="l",xlab="Degrees of Polynomials ",
+ylab="Mean Squared Error")
+plot(seq(10), RES, type="b", col=2, pch=20, xlab="Degrees of
+Polynomials ", ylab="Mean Squared Error")
+```
+
+```{r}
+fit <- glm(I(wage>250) ~ poly(age, 4), Wage, family="binomial")
+preds <- predict(fit, newdata=list(age=age.grid), se=T)
+pfit <- exp(preds$fit) / (1 + exp(preds$fit))
+```
+
+```{r}
+se.bands.logit <- cbind(preds$fit + 2*preds$se.fit,
+                        preds$fit - 2*preds$se.fit)
+se.bands <- exp(se.bands.logit)/(1 + exp(se.bands.logit))
+```
+
+```{r}
+preds2 <- predict(fit, newdata=list(age=age.grid),
+                  type="response", se=T)
+cbind(pfit, preds2$fit)
+```
+
+```{r}
+plot(age , I(wage > 250), xlim=range(age), type="n",
+      ylim=c(0, .2))
+points(jitter(age), I((wage>250)/5), cex=.5, pch="|",
+        col="darkgrey")
+lines(age.grid, pfit, lwd=2, col="darkblue")
+matlines(age.grid, se.bands, lwd=2, col="darkblue", lty=2)
+
+```
+
+```{r}
+## cut() automatically picked the cut points.
+table(cut(age, 4))
+```
+
+```{r}
+fit <- lm(wage ~ cut(age, 4), data=Wage)
+fit2 <- glm(I(wage>250) ~ cut(age, 4), data=Wage,
+            family="binomial")
+
+## The age < 33.5 category is left out
+coef(summary(fit))
+```
+
+```{r}
+## Fitted values along with confidence bands
+age.grid <- seq(min(age), max(age))
+preds <- predict(fit, newdata=list(age=age.grid), se=TRUE)
+se.bands <- cbind(preds$fit + 2*preds$se.fit,
+                  preds$fit - 2*preds$se.fit)
+
+preds2 <- predict(fit2, newdata=list(age=age.grid), se=T)
+pfit <- exp(preds2$fit)/(1 + exp(preds2$fit))
+se.bands.logit <- cbind(preds2$fit + 2*preds2$se.fit,
+preds2$fit - 2*preds2$se.fit)
+se.bands2 <- exp(se.bands.logit)/(1 + exp(se.bands.logit))
+
+par(mfrow=c(1,2), mar=c(4.5 ,4.5 ,1 ,1), oma=c(0, 0, 4, 0))
+plot(age, wage, xlim=range(age), cex=.5, col="darkgrey")
+title ("Degree-4 Step Functions", outer=T)
+lines(age.grid, preds$fit, lwd=3, col="darkgreen")
+matlines(age.grid, se.bands, lwd=2, col="darkgreen", lty=2)
+
+plot(age , I(wage > 250), xlim=range(age), type="n",
+     ylim=c(0, .2))
+points(jitter(age), I((wage >250)/5), cex=.5, pch="|",
+       col="darkgrey")
+lines(age.grid, pfit, lwd=3, col="darkgreen")
+matlines(age.grid, se.bands2, lwd=2, col="darkgreen", lty=2)
+
+```
+
+```{r}
+## 200 obs. are randomly generated from 3000 obs.
+set.seed(19)
+ss <- sample(3000, 200)
+nWage <- Wage[ss, ]
+age.grid <- seq(min(nWage$age), max(nWage$age))
+g1 <- lm(wage ~ poly(age, 3), data=nWage, subset=(age < 50))
+g2 <- lm(wage ~ poly(age, 3), data=nWage, subset=(age > 50))
+pred1 <- predict(g1, newdata=list(age=age.grid[age.grid < 50]))
+pred2 <- predict(g2, newdata=list(age=age.grid[age.grid >= 50]))
+par(mfrow = c(1, 2))
+
+plot(nWage[, 2], nWage[, 11], col="darkgrey", xlab="Age",
+      ylab="Wage")
+
+title(main = "Piecewise Cubic")
+lines(age.grid[age.grid < 50], pred1, lwd=2, col="darkblue")
+lines(age.grid[age.grid >= 50], pred2, lwd=2, col="darkblue")
+abline(v=50, lty=2)
+
+
+## Define the two hockey-stick functions
+LHS <- function(x) ifelse(x < 50, 50-x, 0)
+RHS <- function(x) ifelse(x < 50, 0, x-50)
+## Fit continuous piecewise polynomials
+g3 <- lm(wage ~ poly(LHS(age), 3) + poly(RHS(age), 3), nWage)
+pred3 <- predict(g3, newdata=list(age=age.grid))
+
+plot(nWage[, 2], nWage[, 11], col="darkgrey", xlab="Age",
+     ylab="Wage")
+title(main="Continuous Piecewise Cubic")
+lines(age.grid, pred3, lwd=2, col="darkgreen")
+abline(v=50, lty=2)
+```
+
+```{r}
+summary(g1)
+summary(g2)
+summary(g3)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

@@ -13,13 +13,15 @@ summary(Default)
 
 ```{r}
 attach(Default)
-balance
+head(balance)
 ```
 
 ```{r}
 plot(income ~ balance, xlab="Balance", ylab="Income",
-pch=c(1,3)[unclass(default)],
-col=c("lightblue","red")[unclass(default)])
+     pch=c(1,3)[unclass(default)],
+     col=c("lightblue","red")[unclass(default)])
+
+# unclass(): 범주형 변수를 수치값으로 알아서 인코딩
 ```
 
 ```{r}
@@ -28,31 +30,38 @@ ss <- sample(which(default=="No"), sum(default=="Yes"))
 ss <- c(ss, which(default=="Yes"))
 us <- unclass(default[ss])
 plot(income[ss] ~ balance[ss], xlab="Balance", pch=c(1,3)[us],
-col=c("lightblue","red")[us], ylab="Income")
+     col=c("lightblue","red")[us], ylab="Income")
 ```
 
 ```{r}
+# 채무불이행 여부와 자산, 수익의 관계
 par(mfrow=c(1,2))
 boxplot(balance~default, col=c("lightblue","red"), boxwex=0.5,
-xlab="Default", ylab="Balance")
+        xlab="Default", ylab="Balance")
 boxplot(income~default, col=c("lightblue","red"), boxwex=0.5,
-xlab="Default", ylab="Income")
+        xlab="Default", ylab="Income")
 ```
 
 ```{r}
 ndef <- rep(0, length(default))
 ndef[default=="Yes"] <- 1
+  # default가 Yes인지 No인지 나타내는 이진변수 생성
+
 g1 <- glm(ndef ~ balance)
 g2 <- glm(default ~ balance, family="binomial")
+
 par(mfrow=c(1,2))
+
 plot(balance, ndef, pch="|", col="orange", xlab="Balance",
-ylab="Probability of Default",ylim=c(-0.1,1.1))
+     ylab="Probability of Default",ylim=c(-0.1,1.1))
 abline(h=c(0,1), lty=2)
 lines(balance, g1$fit, col="lightblue", lwd=2)
+
 plot(balance, as.numeric(default)-1, pch="|", col="orange",
-xlab="Balance", ylab="Probability of Default",
+     xlab="Balance", ylab="Probability of Default",
 ylim=c(-0.1,1.1))
 abline(h=c(0,1), lty=2)
+
 u <- order(balance)
 lines(balance[u], g2$fit[u], col="lightblue", lwd=3)
 
@@ -74,12 +83,15 @@ g2$fit[1:10]
 ## inverse logistic function
 ilogit <- function(x, coef) {
   exp(cbind(1, x) %*% coef) / (1 + exp(cbind(1, x) %*% coef))
+    # 첫째항은 intercept
+    # sigmoid 함수를 사용해 p_hat을 구한다
 }
+
 cbind(g2$fit, ilogit(balance, g2$coef))[1:100,]
 ```
 
 ```{r}
-ilogit(1000, g2$coef)
+ilogit(1, g2$coef)
 ```
 
 ```{r}
@@ -105,8 +117,9 @@ round(summary(g4)$coef, 4)
 ```{r}
 yst <- g4$fit[student=="Yes"]
 nst <- g4$fit[student=="No"]
+
 plot(balance, g2$fit, col="white", xlab="Credit Card Balance",
-ylab="Default Rate")
+     ylab="Default Rate")
 abline(h=0)
 abline(h=mean(yst), lty=2, col="orange")
 abline(h=mean(nst), lty=2, col="lightblue")
@@ -115,6 +128,12 @@ u2 <- order(balance[student=="No"])
 lines(balance[student=="Yes"][u1], yst[u1], col="orange", lwd=2)
 lines(balance[student=="No"][u2], nst[u2], col="lightblue", lwd=2)
 
+```
+
+```{r}
+plot(income, g2$fit, col="white", xlab="Credit Card Balance",
+     ylab="Default Rate")
+points(income[student=="Yes"], g4$fit[student=="Yes"])
 ```
 
 ```{r}
@@ -147,12 +166,14 @@ set.seed(1111)
 n <- nrow(Default)
 train <- sample(1:n, n*0.7)
 test <- setdiff(1:n, train)
+
 g1 <- glm(default ~ balance, family="binomial", subset=train)
 g2 <- glm(default ~ student, family="binomial", subset=train)
 g3 <- glm(default ~ income, family="binomial", subset=train)
 g4 <- glm(default~ balance+student+income, family="binomial",
-subset=train)
+          subset=train)
 miss <- NULL
+
 for (k in 1:4) {
   g <- get(paste("g", k, sep=""))
   pred <- predict(g, Default, type="response")[test]
@@ -236,7 +257,7 @@ n <- nrow(wine)
 train <- sample(1:n, round(n*0.7))
 test <- setdiff(1:n, train)
 fit1 <- multinom(Type ~ Alcohol + Color, data=wine,
-subset=train)
+                 subset=train)
 summary(fit1)
 
 ```
@@ -282,7 +303,7 @@ hist(miss, main="Classification Error Rate", col="orange")
 ```{r}
 x <- seq(-5, 5, 0.1)
 plot(x, dnorm(x, -1.5, 1), type="l", col="darkgreen", xlab="",
-ylab="", yaxt="n", xlim=c(-5,5), lwd=2)
+     ylab="", yaxt="n", xlim=c(-5,5), lwd=2)
 lines(x, dnorm(x, 1.5, 1), col="red", lwd=2)
 abline(v=0, lwd=3, lty=2)
 ```
@@ -290,8 +311,9 @@ abline(v=0, lwd=3, lty=2)
 ```{r}
 x1 <- rnorm(20, -1.5, 1)
 x2 <- rnorm(20, 1.5, 1)
+
 hist(x1, col=rgb(0.4,1,0,0.8), breaks=10, xlab="", ylab="",
-main="", xlim=c(-4,4))
+     main="", xlim=c(-4,4))
 hist(x2, col=rgb(0.7,0,0,0.7), breaks=10, add=T)
 abline(v=0, lwd=3, lty=2)
 abline(v=(mean(x1)+mean(x2))/2, lwd=3, lty=1)
@@ -339,6 +361,7 @@ mean(pred$class!=iris$Species)
 ## Randomly separate training sets and test sets
 set.seed(1234)
 tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+
 g <- lda(Species ~., data=iris, subset=tran)
 
 ## Compute misclassification error for test sets
@@ -372,6 +395,7 @@ library(nnet)
 set.seed(1234)
 K <- 100
 RES <- array(0, c(K, 2))
+
 for (i in 1:K) {
   tran.num <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
   tran <- as.logical(rep(0, nrow(iris)))
@@ -714,4 +738,275 @@ col=2, pch=20)
 
 ```{r}
 which.min(err)
+```
+
+### Comparison of Classification Methods
+
+```{r}
+library(mnormt);library(MASS)
+library(class);library(e1071)
+```
+
+```{r}
+MissClassRate <- function(x.tran, x.test, y.test, y.tran) {
+  nt <- nrow(x.tran)
+  
+  ldafit <- predict(lda(x.tran, y.tran), x.test)$class
+  
+  qdafit <- predict(qda(x.tran, y.tran), x.test)$class
+  
+  knn1 <- knn(x.tran, x.test, y.tran, k=1)
+  knn5 <- knn(x.tran, x.test, y.tran, k=5)
+  knn20 <- knn(x.tran, x.test, y.tran, k=20)
+  
+  data <- data.frame(x=rbind(x.tran,x.test),y=c(y.tran,y.test))
+  
+  g <- glm(y~., family="binomial", subset=1:nt, data)
+  
+  logit <- predict(g, data, type="response")[-c(1:nt)]
+  logit[logit >= 0.5] <- 1
+  logit[logit < 0.5] <- 0
+  
+  g2 <- naiveBayes(y~., subset=1:nt, data)
+  
+  NB <- predict(g2, data)[-c(1:nt)]
+  
+  c(mean(ldafit!=y.test), qda=mean(qdafit!=y.test),
+    mean(knn1!=y.test), mean(knn5!=y.test),
+    mean(knn20!=y.test), mean(logit!=y.test),
+    mean(NB!=y.test))
+}
+```
+
+```{r}
+set.seed(12345)
+K <- 100
+RES1 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- rmnorm(150, rep(0, 2), diag(2))
+  x.B <- rmnorm(150, rep(1, 2), diag(2))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  y.tran <- factor(rep(0:1, each=50))
+  y.test <- factor(rep(0:1, each=100))
+  RES1[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES1, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 1",
+        ylab="Test Error Rates")
+```
+
+```{r}
+RES2 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- rmnorm(150, rep(0, 2), matrix(c(1,-0.5,-0.5,1),2))
+  x.B <- rmnorm(150, rep(1, 2), matrix(c(1,-0.5,-0.5,1),2))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  y.tran <- factor(rep(0:1, each=50))
+  y.test <- factor(rep(0:1, each=100))
+  RES2[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES2, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 2",
+        ylab="Test Error Rates")
+```
+
+```{r}
+RES3 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- cbind(rt(150, df=5, ncp=0), rt(150, df=5, ncp=0))
+  x.B <- cbind(rt(150, df=5, ncp=0.5), rt(150, df=5, ncp=0.5))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  y.tran <- factor(rep(0:1, each=50))
+  y.test <- factor(rep(0:1, each=100))
+  RES3[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES3, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 3",
+        ylab="Test Error Rates")
+```
+
+```{r}
+RES4 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- rmnorm(150, rep(0, 2), matrix(c(1,0.5,0.5,1),2))
+  x.B <- rmnorm(150, rep(1, 2), matrix(c(1,-0.5,-0.5,1),2))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  y.tran <- factor(rep(0:1, each=50))
+  y.test <- factor(rep(0:1, each=100))
+  RES4[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES4, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 4",
+        ylab="Test Error Rates")
+
+```
+
+```{r}
+RES5 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- rmnorm(150, rep(0, 2), diag(2))
+  x.B <- rmnorm(150, rep(1, 2), diag(2))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  tr.int <- x.tran[,1]*x.tran[,2]
+  te.int <- x.test[,1]*x.test[,2]
+  xb.tr <- cbind(x.tran,tr.int)%*%c(-0.5,0.5,1)
+  xb.te <- cbind(x.test,te.int)%*%c(-0.5,0.5,1)
+  y.tran <- rep(0, 100); y.test <- rep(0, 200)
+  y.tran[xb.tr > 0] <- 1; y.tran <- factor(y.tran)
+  y.test[xb.te > 0] <- 1; y.test <- factor(y.test)
+  RES5[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES5, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 5",
+        ylab="Test Error Rates")
+
+```
+
+```{r}
+RES6 <- matrix(NA, K, 7)
+
+for (i in 1:K) {
+  x.A <- rmnorm(150, rep(0, 2), diag(2))
+  x.B <- rmnorm(150, rep(1, 2), diag(2))
+  x.tran <- rbind(x.A[1:50, ], x.B[1:50, ])
+  x.test <- rbind(x.A[-c(1:50), ], x.B[-c(1:50), ])
+  tr.int <- exp(x.tran[,1])/log(abs(x.tran[,2]))
+  te.int <- exp(x.test[,1])/log(abs(x.test[,2]))
+  xb.tr <- cbind(x.tran,tr.int)%*%c(-0.5,0.5,1)
+  xb.te <- cbind(x.test,te.int)%*%c(-0.5,0.5,1)
+  y.tran <- rep(0, 100); y.test <- rep(0, 200)
+  y.tran[xb.tr > 0] <- 1; y.tran <- factor(y.tran)
+  y.test[xb.te > 0] <- 1; y.test <- factor(y.test)
+  RES6[i,] <- MissClassRate(x.tran, x.test, y.test, y.tran)
+}
+
+boxplot(RES6, boxwex=0.5, col=2:8,names=c("LDA", "QDA", "KNN-1",
+        "KNN-5", "KNN-20", "Logit", "NB"), main="Scenario 5",
+        ylab="Test Error Rates")
+```
+
+```{r}
+par(mfrow=c(2,3))
+boxplot(RES1, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 1", ylab="Test Error Rates")
+
+boxplot(RES2, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 2", ylab="Test Error Rates")
+
+boxplot(RES3, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 3", ylab="Test Error Rates")
+
+boxplot(RES4, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 4", ylab="Test Error Rates")
+
+boxplot(RES5, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 5", ylab="Test Error Rates")
+
+boxplot(RES6, boxwex=0.5, col=2:8, ylim=c(0,0.6),
+        names=c("LDA", "QDA", "KNN-1", "KNN-5",
+        "KNN-20", "Logit", "NB"),
+        main="Scenario 6", ylab="Test Error Rates")
+```
+
+```{r}
+library(ISLR)
+
+names(Smarket)
+str(Smarket)
+dim(Smarket)
+summary(Smarket)
+pairs(Smarket)
+cor(Smarket[, -9])
+attach(Smarket)
+
+par(mfrow=c(2,4))
+
+for (i in 1:8) {
+  plot(Smarket[,i], pch=20, main=colnames(Smarket)[i],
+  col=as.numeric(Smarket$Direction) + 1)
+}
+
+table(Year)
+train <- (Year < 2005)
+y.test <- Direction[!train]
+Sdata <- Smarket[,-c(1,8)]
+
+```
+
+```{r}
+## Logistic Regression
+g1 <- glm(Direction~., data=Sdata, family="binomial",
+subset=train)
+p1 <- predict(g1, Sdata[!train,], type="response")
+pred1 <- rep("Down", length(y.test))
+pred1[p1 > 0.5] <- "Up"
+mean(pred1!=y.test)
+```
+
+```{r}
+## LDA
+library(MASS)
+g2 <- lda(Direction~., data=Sdata, subset=train)
+pred2 <- predict(g2, Sdata[!train,])$class
+mean(pred2!=y.test)
+```
+
+```{r}
+## QDA
+g3 <- qda(Direction~., data=Sdata, subset=train)
+pred3 <- predict(g3, Sdata[!train,])$class
+mean(pred3!=y.test)
+```
+
+```{r}
+## Naive Bayes
+library(e1071)
+g4 <- naiveBayes(Direction~., data=Sdata, subset=train)
+pred4 <- predict(g4, Sdata[!train,])
+mean(pred4!=y.test)
+```
+
+```{r}
+## KNN
+library(class)
+x.train <- Sdata[train, -7]
+x.test <- Sdata[!train, -7]
+y.train <- Sdata$Direction[train]
+```
+
+```{r}
+CER <- NULL
+
+for (k in 1:200) {
+  g5 <- knn(x.train, x.test, y.train, k=k)
+  CER[k] <- mean(g5!=y.test)
+}
+summary(CER)
+plot(1:200, CER, type="b", xlab="k", ylab="Error", col=2, pch=20)
+
 ```
