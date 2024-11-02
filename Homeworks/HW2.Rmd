@@ -77,32 +77,41 @@ lr1_z_test <- predict(lr1, data.frame(x_test))
 lr1_p_test <- 1/(1+exp(-lr1_z_test))
 lr1_p_test <- pmin(pmax(lr1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lr1_p_test)
-D2_func(y_test, lr1_p_test)
+res1_1 <- data.frame(D1 = D1_func(y_test, lr1_p_test),
+           D2 = D2_func(y_test, lr1_p_test),
+           row.names = "Logistic")
 ```
 
 ```{r}
 lda1_p_test <- predict(lda1, data.frame(x_test))$posterior[,2]
 lda1_p_test <- pmin(pmax(lda1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lda1_p_test)
-D2_func(y_test, lda1_p_test)
+res1_2 <- data.frame(D1 = D1_func(y_test, lda1_p_test),
+           D2 = D2_func(y_test, lda1_p_test),
+           row.names = "LDA")
 ```
 
 ```{r}
 qda1_p_test <- predict(qda1, data.frame(x_test))$posterior[,2]
 qda1_p_test <- pmin(pmax(qda1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, qda1_p_test)
-D2_func(y_test, qda1_p_test)
+res1_3 <- data.frame(D1 = D1_func(y_test, qda1_p_test),
+           D2 = D2_func(y_test, qda1_p_test),
+           row.names = "QDA")
 ```
 
 ```{r}
 nb1_p_test <- predict(nb1, data.frame(x_test), type = "raw")[,2]
 nb1_p_test <- pmin(pmax(nb1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, nb1_p_test)
-D2_func(y_test, nb1_p_test)
+
+res1_4 <- data.frame(D1 = D1_func(y_test, nb1_p_test),
+           D2 = D2_func(y_test, nb1_p_test),
+           row.names = "NB")
+```
+
+```{r}
+rbind(res1_1,res1_2,res1_3,res1_4)
 ```
 
 ### 2.
@@ -138,11 +147,11 @@ ridgelr2_p_test2 <- predict(ridgelr2, x_test,
                            type = "response")
 ridgelr2_p_test2 <- pmin(pmax(ridgelr2_p_test2[,which.min(D2_vec2)], 1e-10), 1-(1e-10))
 
-D1_func(y_test, ridgelr2_p_test1)
-D2_func(y_test, ridgelr2_p_test1)
-
-D1_func(y_test, ridgelr2_p_test2)
-D2_func(y_test, ridgelr2_p_test2)
+data.frame(D1 = c(D1_func(y_test, ridgelr2_p_test1),
+                  D1_func(y_test, ridgelr2_p_test2)),
+           D2 = c(D2_func(y_test, ridgelr2_p_test1),
+                  D2_func(y_test, ridgelr2_p_test2)),
+           row.names = c("RG1", "RG2"))
 ```
 
 ### 3.
@@ -179,11 +188,12 @@ lassolr3_p_test2 <- predict(lassolr3, x_test,
                            type = "response")
 lassolr3_p_test2 <- pmin(pmax(lassolr3_p_test2[,which.min(D2_vec3)], 1e-10), 1-(1e-10))
 
-D1_func(y_test, lassolr3_p_test1)
-D2_func(y_test, lassolr3_p_test1)
 
-D1_func(y_test, lassolr3_p_test2)
-D2_func(y_test, lassolr3_p_test2)
+data.frame(D1 = c(D1_func(y_test, lassolr3_p_test1),
+                  D1_func(y_test, lassolr3_p_test2)),
+           D2 = c(D2_func(y_test, lassolr3_p_test1),
+                  D2_func(y_test, lassolr3_p_test2)),
+           row.names = c("LS1", "LS2"))
 ```
 
 
@@ -287,7 +297,26 @@ D1_func(y_test, nb4_2_p_test)
 D2_func(y_test, nb4_2_p_test)
 ```
 
-
+```{r}
+data.frame(D1 = c(D1_func(y_test, lr4_1_p_test),
+                  D1_func(y_test, lr4_2_p_test),
+                  D1_func(y_test, lda4_1_p_test),
+                  D1_func(y_test, lda4_2_p_test),
+                  D1_func(y_test, qda4_1_p_test),
+                  D1_func(y_test, qda4_2_p_test),
+                  D1_func(y_test, nb4_1_p_test),
+                  D1_func(y_test, nb4_2_p_test)),
+           D2 = c(D2_func(y_test, lr4_1_p_test),
+                  D2_func(y_test, lr4_2_p_test),
+                  D2_func(y_test, lda4_1_p_test),
+                  D2_func(y_test, lda4_2_p_test),
+                  D2_func(y_test, qda4_1_p_test),
+                  D2_func(y_test, qda4_2_p_test),
+                  D2_func(y_test, nb4_1_p_test),
+                  D2_func(y_test, nb4_2_p_test)),
+           row.names = c("LR1", "LR2", "LDA1", "LDA2",
+                         "QDA1", "QDA2", "NB1", "NB2"))
+```
 ### 5.
 
 ```{r}
@@ -321,6 +350,12 @@ D2_func(y_test, knn5_1_p_test)
 
 D1_func(y_test, knn5_2_p_test)
 D2_func(y_test, knn5_2_p_test)
+
+data.frame(D1 = c(D1_func(y_test, knn5_1_p_test),
+                  D1_func(y_test, knn5_2_p_test)),
+           D2 = c(D2_func(y_test, knn5_1_p_test),
+                  D2_func(y_test, knn5_2_p_test)),
+           row.names = c("KNN1", "KNN2"))
 ```
 
 
