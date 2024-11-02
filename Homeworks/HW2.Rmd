@@ -1,11 +1,14 @@
 ---
 title: "HW2"
 author: "Lee JongCheol"
-date: "`r Sys.Date()`"
-output: html_document
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
 ---
 
-```{r}
+```{r, error=F, message=F}
 library(ISLR)
 library(MASS)
 library(e1071)
@@ -15,12 +18,12 @@ x <- scale(College[,-1])
 y <- College$Private
 ```
 
-```{r}
+```{r, error=F, message=F}
 set.seed(12345)
 set <- sample(rep(c("tran", "vald", "test"), length=nrow(x)))
 ```
 
-```{r}
+```{r, error=F, message=F}
 x_tran <- x[set=="tran",]
 x_val <- x[set=="vald",]
 x_test <- x[set=="test",]
@@ -30,7 +33,7 @@ y_val <- y[set=="vald"]
 y_test <- y[set=="test"]
 ```
 
-```{r}
+```{r, error=F, message=F}
 D1_func <- function(y, p) {
   -1/2*mean((y=="Yes")*log(p) + (y=="No")*log(1-p))
 }
@@ -54,17 +57,10 @@ D2_func <- function(y, p) {
 }
 ```
 
-```{r}
-dim(x)[1] == length(y)
-```
-
-```{r}
-head(x,3)
-```
 
 ### 1.
 
-```{r}
+```{r, error=F, message=F}
 lr1 <- glm(y_tran ~ ., family="binomial", data = data.frame(x_tran, y_tran))
 lda1 <- lda(y_tran ~ ., data = data.frame(x_tran, y_tran))
 qda1 <- qda(y_tran ~ ., data = data.frame(x_tran, y_tran))
@@ -72,7 +68,7 @@ nb1 <- naiveBayes(x_tran, y_tran)
 ```
 
 
-```{r}
+```{r, error=F, message=F}
 lr1_z_test <- predict(lr1, data.frame(x_test))
 lr1_p_test <- 1/(1+exp(-lr1_z_test))
 lr1_p_test <- pmin(pmax(lr1_p_test, 1e-10), 1-(1e-10))
@@ -82,7 +78,7 @@ res1_1 <- data.frame(D1 = D1_func(y_test, lr1_p_test),
            row.names = "Logistic")
 ```
 
-```{r}
+```{r, error=F, message=F}
 lda1_p_test <- predict(lda1, data.frame(x_test))$posterior[,2]
 lda1_p_test <- pmin(pmax(lda1_p_test, 1e-10), 1-(1e-10))
 
@@ -91,7 +87,7 @@ res1_2 <- data.frame(D1 = D1_func(y_test, lda1_p_test),
            row.names = "LDA")
 ```
 
-```{r}
+```{r, error=F, message=F}
 qda1_p_test <- predict(qda1, data.frame(x_test))$posterior[,2]
 qda1_p_test <- pmin(pmax(qda1_p_test, 1e-10), 1-(1e-10))
 
@@ -100,7 +96,7 @@ res1_3 <- data.frame(D1 = D1_func(y_test, qda1_p_test),
            row.names = "QDA")
 ```
 
-```{r}
+```{r, error=F, message=F}
 nb1_p_test <- predict(nb1, data.frame(x_test), type = "raw")[,2]
 nb1_p_test <- pmin(pmax(nb1_p_test, 1e-10), 1-(1e-10))
 
@@ -110,18 +106,18 @@ res1_4 <- data.frame(D1 = D1_func(y_test, nb1_p_test),
            row.names = "NB")
 ```
 
-```{r}
+```{r, error=F, message=F}
 rbind(res1_1,res1_2,res1_3,res1_4)
 ```
 
 ### 2.
 
-```{r}
+```{r, error=F, message=F}
 lam1 <- 10^seq(-3, -1.5, length.out=100)
 ridgelr2 <- glmnet(x_tran, y_tran, alpha=0, lambda=lam1, family="binomial")
 ```
 
-```{r}
+```{r, error=F, message=F}
 ridgelr2_z_val <- predict(ridgelr2, x_val)
 ridgelr2_p_val <- 1/(1+exp(-ridgelr2_z_val))
 ridgelr2_p_val <- pmin(pmax(ridgelr2_p_val, 1e-10), 1-(1e-10))
@@ -138,7 +134,7 @@ lamb_D1 <- lam1[which.min(D1_vec2)]
 lamb_D2 <- lam1[which.min(D2_vec2)]
 ```
 
-```{r}
+```{r, error=F, message=F}
 ridgelr2_p_test1 <- predict(ridgelr2, x_test,
                            type = "response")
 ridgelr2_p_test1 <- pmin(pmax(ridgelr2_p_test1[,which.min(D1_vec2)], 1e-10), 1-(1e-10))
@@ -156,13 +152,13 @@ data.frame(D1 = c(D1_func(y_test, ridgelr2_p_test1),
 
 ### 3.
 
-```{r}
+```{r, error=F, message=F}
 lam2 <- 10^seq(-0.5, -3.5, length.out=100)
 
 lassolr3 <- glmnet(x_tran, y_tran, alpha=1, lambda=lam2, family="binomial")
 ```
 
-```{r}
+```{r, error=F, message=F}
 lassolr3_z_val <- predict(lassolr3, x_val)
 lassolr3_p_val <- 1/(1+exp(-lassolr3_z_val))
 lassolr3_p_val <- pmin(pmax(lassolr3_p_val, 1e-10), 1-(1e-10))
@@ -179,7 +175,7 @@ lamb_D1_3 <- lam2[which.min(D1_vec3)]
 lamb_D2_3 <- lam2[which.min(D2_vec3)]
 ```
 
-```{r}
+```{r, error=F, message=F}
 lassolr3_p_test1 <- predict(lassolr3, x_test,
                            type = "response")
 lassolr3_p_test1 <- pmin(pmax(lassolr3_p_test1[,which.min(D1_vec3)], 1e-10), 1-(1e-10))
@@ -199,12 +195,12 @@ data.frame(D1 = c(D1_func(y_test, lassolr3_p_test1),
 
 ### 4.
 
-```{r}
+```{r, error=F, message=F}
 nonzero1 <- lassolr3$beta[,which.min(D1_vec3)]!=0
 nonzero2 <- lassolr3$beta[,which.min(D2_vec3)]!=0
 ```
 
-```{r}
+```{r, error=F, message=F}
 lr4_1 <- glm(y_tran ~ ., family="binomial",
              data = data.frame(x_tran[,nonzero1], y_tran))
 
@@ -225,79 +221,63 @@ qda4_2 <- qda(y_tran ~ ., data = data.frame(x_tran[,nonzero2], y_tran))
 nb4_2 <- naiveBayes(x_tran[,nonzero2], y_tran)
 ```
 
-```{r}
+```{r, error=F, message=F}
 lr4_1_z_test <- predict(lr4_1, data.frame(x_test[,nonzero1]))
 lr4_1_p_test <- 1/(1+exp(-lr4_1_z_test))
 lr4_1_p_test <- pmin(pmax(lr4_1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lr4_1_p_test)
-D2_func(y_test, lr4_1_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 lr4_2_z_test <- predict(lr4_2, data.frame(x_test[,nonzero2]))
 lr4_2_p_test <- 1/(1+exp(-lr4_2_z_test))
 lr4_2_p_test <- pmin(pmax(lr4_2_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lr4_2_p_test)
-D2_func(y_test, lr4_2_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 lda4_1_p_test <- predict(lda4_1,
                          data.frame(x_test[,nonzero1]))$posterior[,2]
 lda4_1_p_test <- pmin(pmax(lda4_1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lda4_1_p_test)
-D2_func(y_test, lda4_1_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 lda4_2_p_test <- predict(lda4_2,
                          data.frame(x_test[,nonzero2]))$posterior[,2]
 lda4_2_p_test <- pmin(pmax(lda4_2_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, lda4_2_p_test)
-D2_func(y_test, lda4_2_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 qda4_1_p_test <- predict(qda4_1,
                          data.frame(x_test[,nonzero1]))$posterior[,2]
 qda4_1_p_test <- pmin(pmax(qda4_1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, qda4_1_p_test)
-D2_func(y_test, qda4_1_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 qda4_2_p_test <- predict(qda4_2,
                          data.frame(x_test[,nonzero2]))$posterior[,2]
 qda4_2_p_test <- pmin(pmax(qda4_2_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, qda4_2_p_test)
-D2_func(y_test, qda4_2_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 nb4_1_p_test <- predict(nb4_1,
                         data.frame(x_test[,nonzero1]), type = "raw")[,2]
 nb4_1_p_test <- pmin(pmax(nb4_1_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, nb4_1_p_test)
-D2_func(y_test, nb4_1_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 nb4_2_p_test <- predict(nb4_2,
                         data.frame(x_test[,nonzero2]), type = "raw")[,2]
 nb4_2_p_test <- pmin(pmax(nb4_2_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, nb4_2_p_test)
-D2_func(y_test, nb4_2_p_test)
 ```
 
-```{r}
+```{r, error=F, message=F}
 data.frame(D1 = c(D1_func(y_test, lr4_1_p_test),
                   D1_func(y_test, lr4_2_p_test),
                   D1_func(y_test, lda4_1_p_test),
@@ -319,7 +299,7 @@ data.frame(D1 = c(D1_func(y_test, lr4_1_p_test),
 ```
 ### 5.
 
-```{r}
+```{r, error=F, message=F}
 library(caret)
 
 D1_vec5 <- c()
@@ -345,11 +325,6 @@ knn5_2_p_test <- knn3Train(x_tran, x_test, y_tran, k=k2hat, prob = T)
 knn5_2_p_test <- attr(knn5_2_p_test, "prob")[,2]
 knn5_2_p_test <- pmin(pmax(knn5_2_p_test, 1e-10), 1-(1e-10))
 
-D1_func(y_test, knn5_1_p_test)
-D2_func(y_test, knn5_1_p_test)
-
-D1_func(y_test, knn5_2_p_test)
-D2_func(y_test, knn5_2_p_test)
 
 data.frame(D1 = c(D1_func(y_test, knn5_1_p_test),
                   D1_func(y_test, knn5_2_p_test)),
@@ -361,14 +336,14 @@ data.frame(D1 = c(D1_func(y_test, knn5_1_p_test),
 
 ### 6.
 
-```{r}
+```{r, error=F, message=F}
 set.seed(111222)
 set100 <- matrix(rep(c("tran", "vald", "test"),
                      length=nrow(x)), nrow(x), 100)
 set100 <- apply(set100, 2, sample)
 ```
 
-```{r}
+```{r, error=F, message=F}
 res6_D1 <- matrix(0, nrow = 18, ncol=100)
 res6_D2 <- matrix(0, nrow = 18, ncol=100)
 
@@ -640,9 +615,18 @@ for (i in 1:100) {
 res6_D1_mean <- apply(res6_D1, 1, mean)
 res6_D2_mean <- apply(res6_D2, 1, mean)
 
-res <- cbind(c("LR", "LDA", "QDA", "NB", "RG1", "RG2", "LS1", "LS2",
+res <- data.frame(D1 = res6_D1_mean,
+           D2 = res6_D2_mean,
+           row.names = c("LR", "LDA", "QDA", "NB", "RG1", "RG2", "LS1", "LS2",
               "LR1", "LDA1", "QDA1", "NB1", "LR2", "LDA2", "QDA2",
-              "NB2", "KNN1", "KNN2"),res6_D1_mean, res6_D2_mean)
+              "NB2", "KNN1", "KNN2"))
 
 write.csv(res, file = "HW2_result.csv", row.names = F, na = "")
+res
 ```
+
+```{r, message=F, error=F}
+print("Winners in terms of each D1 and D2:")
+apply(res, 2, function(t) rownames(res)[which.min(t)])
+```
+
