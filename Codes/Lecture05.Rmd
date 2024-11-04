@@ -1,0 +1,104 @@
+---
+title: "Lecture 05"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+library(tree)
+data(Hitters)
+str(Hitters)
+```
+
+```{r}
+summary(Hitters$Salary)
+```
+
+```{r}
+miss <- is.na(Hitters$Salary)
+sum(miss)
+```
+
+```{r}
+g0 <- lm(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+summary(g0)
+mean(residuals(g0)^2) # Train MSE
+```
+
+```{r}
+## Fit a regression tree
+g <- tree(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+g
+```
+
+* terminal node 8개 중 하나로 예측됨
+
+```{r}
+summary(g)
+```
+
+```{r}
+mean(residuals(g)^2)
+```
+
+```{r}
+## Draw a tree
+plot(g)
+text(g, pretty=0)
+```
+
+```{r}
+## Another R package for tree
+library(rpart)
+library(rpart.plot)
+## Fit a regression tree
+g2 <- rpart(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+g2
+```
+
+```{r}
+summary(g2)
+```
+
+```{r}
+## Draw a fancy tree
+prp(g2, branch.lwd=4, branch.col="darkgreen", extra=101)
+```
+
+```{r}
+## Prune a tree
+g3 <- prune.tree(g, best=5)
+plot(g3)
+text(g3, pretty=0)
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
