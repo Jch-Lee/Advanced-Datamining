@@ -69,29 +69,61 @@ prp(g2, branch.lwd=4, branch.col="darkgreen", extra=101)
 
 ```{r}
 ## Prune a tree
-g3 <- prune.tree(g, best=5)
+g3 <- prune.tree(g, best=3)
 plot(g3)
 text(g3, pretty=0)
 ```
 
 ```{r}
-
+par(mar=c(4,4,3,4))
+plot(Hitters$Years, Hitters$Hits, pch=16, col="orange",
+     xlab="Years", ylab="Hits", xaxt="n", yaxt="n")
+axis(1, at=c(1,4.5,24), labels=c("1","4.5","24"),
+     tick=FALSE, pos=1)
+axis(4, at=c(1,117.5,238), labels=c("1","117.5","238"),
+     tick=FALSE, las=2)
+abline(v=4.5, lwd=2, col="darkgreen")
+segments(4.5,117.5,25,117.5, lwd=2, lty=1, col="darkgreen")
+text(2, 117.5, font=2, cex=1.4, expression(R[1]))
+text(13, 50, font=2, cex=1.4, expression(R[2]))
+text(13, 180.5, font=2, cex=1.4, expression(R[3]))
 ```
 
 ```{r}
+## Compute the mean of log Salary for each region
+attach(Hitters)
+mean(log(Salary[Years < 4.5]), na.rm=TRUE)
+mean(log(Salary[Years >= 4.5 & Hits < 117.5]), na.rm=TRUE)
+mean(log(Salary[Years >= 4.5 & Hits >= 117.5]), na.rm=TRUE)
+```
 
+### Continue of Hitters data
+
+```{r}
+library(tree)
+data(Hitters)
+miss <- is.na(Hitters$Salary)
+g <- tree(log(Salary) ~ Years + Hits + RBI + PutOuts + Walks +
+          Runs + Assists + HmRun + Errors + AtBat,
+          subset=!miss, Hitters)
+plot(g)
+text(g, pretty=0)
+summary(g)
 ```
 
 ```{r}
-
+## Perform 6 fold CV
+set.seed(1234)
+cv.g <- cv.tree(g, K=6)
+plot(cv.g$size, cv.g$dev, type="b")
 ```
 
 ```{r}
-
-```
-
-```{r}
-
+## Find the optimal tree size that minimizes MSE
+w <- which.min(cv.g$dev)
+g2 <- prune.tree(g, best=cv.g$size[w])
+plot(g2)
+text(g2, pretty=0)
 ```
 
 ```{r}
