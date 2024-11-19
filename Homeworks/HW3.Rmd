@@ -93,8 +93,8 @@ problem1 <- function(comb_mat, x, y, gr) {
         LM <- lm(target ~., data=train_dat)
         RT <- tree(target ~., data=train_dat)
         
-        test_dat <- data.frame(test_x[,predictors], target=test_y)
-        colnames(test_dat) <- c(predictors, "target")
+        test_dat <- data.frame(test_x[,predictors])
+        colnames(test_dat) <- predictors
         LM_pred <- as.numeric(predict(LM, newdata = test_dat))
         RT_pred <- as.numeric(predict(RT, newdata = test_dat))
         
@@ -146,11 +146,11 @@ problem2 <- function(comb_mat, x, y, gr) {
           
           train_dat <- data.frame(train_x[,predictors], target=train_y)
           colnames(train_dat) <- c(predictors, "target")
-          RT <- tree(target ~., data=train_dat)
+          BG <- tree(target ~., data=train_dat)
           
-          test_dat <- data.frame(test_x[,predictors], target=test_y)
-          colnames(test_dat) <- c(predictors, "target")
-          RT_pred[idx,] <- as.numeric(predict(RT, newdata = test_dat))
+          test_dat <- data.frame(test_x[,predictors])
+          colnames(test_dat) <- predictors
+          RT_pred[idx,] <- as.numeric(predict(BG, newdata = test_dat))
 
           idx <- idx+1
         }
@@ -185,13 +185,16 @@ Ki0 <- function(lambda, test, train, weight_func) {
 ```
 
 ```{r}
-problem3 <- function(comb_mat, x, y, gr) {
+problem3 <- function(x, y, gr) {
+  Rsq_fold1 <- Rsq_fold2 <- Rsq_fold3 <- Rsq_fold4 <- rep(0, 30)
   for (K in 1:max(gr)) {
     train_x <- x[(gr!=K),]
     train_y <- y[(gr!=K)]
     test_x <- x[(gr==K),]
     test_y <- y[(gr==K)]
     
+    yhat_fold1 <- yhat_fold2 <- yhat_fold3 <- yhat_fold4 <-
+      matrix(0, nrow = nrow(test_x), ncol = 30)
     for (j in 1:nrow(test_x)) {
       x0 <- test_x[j,]
       l2_norm_vec <- apply(train_x, 1, function(t) sqrt(sum((x0-t)^2)))
@@ -202,35 +205,218 @@ problem3 <- function(comb_mat, x, y, gr) {
       
       for (l in 1:30) {
         lam_value <- lambda[l]
-        weights1 <- Ki0(lam_value, x0, xi, D1_func)
-        weights2 <- Ki0(lam_value, x0, xi, D2_func)
-        weights3 <- Ki0(lam_value, x0, xi, D3_func)
-        weights4 <- Ki0(lam_value, x0, xi, D4_func)
+        weights1 <- apply(train_x, 1, function(t) Ki0(lam_value, x0, t, D1_func))
+        weights2 <- apply(train_x, 1, function(t) Ki0(lam_value, x0, t, D2_func))
+        weights3 <- apply(train_x, 1, function(t) Ki0(lam_value, x0, t, D3_func))
+        weights4 <- apply(train_x, 1, function(t) Ki0(lam_value, x0, t, D4_func))
         
+        train_dat <- data.frame(train_x, target=train_y)
+        colnames(train_dat) <- c(colnames(train_x), "target")
+        LR1 <- lm(target ~., data=train_dat, weights = weights1)
+        LR2 <- lm(target ~., data=train_dat, weights = weights2)
+        LR3 <- lm(target ~., data=train_dat, weights = weights3)
+        LR4 <- lm(target ~., data=train_dat, weights = weights4)
         
+        test_dat <- data.frame(t(x0))
+        colnames(test_dat) <- colnames(test_x)
+        yhat_fold1[j,l] <- as.numeric(predict(LR1, newdata = test_dat))
+        yhat_fold2[j,l] <- as.numeric(predict(LR2, newdata = test_dat))
+        yhat_fold3[j,l] <- as.numeric(predict(LR3, newdata = test_dat))
+        yhat_fold4[j,l] <- as.numeric(predict(LR4, newdata = test_dat))
       }
     }
+    Rsq_fold1 <- Rsq_fold1 + apply(yhat_fold1, 2, function(t) R_squared(t, test_y))
+    Rsq_fold2 <- Rsq_fold2 + apply(yhat_fold2, 2, function(t) R_squared(t, test_y))
+    Rsq_fold3 <- Rsq_fold3 + apply(yhat_fold3, 2, function(t) R_squared(t, test_y))
+    Rsq_fold4 <- Rsq_fold4 + apply(yhat_fold4, 2, function(t) R_squared(t, test_y))
   }
+  Rsq_fold1 <- Rsq_fold1/max(gr)
+  Rsq_fold2 <- Rsq_fold2/max(gr)
+  Rsq_fold3 <- Rsq_fold3/max(gr)
+  Rsq_fold4 <- Rsq_fold4/max(gr)
+  
+  return(data.frame(LR1 = max(Rsq_fold1),
+                    LR2 = max(Rsq_fold2),
+                    LR3 = max(Rsq_fold3),
+                    LR4 = max(Rsq_fold4)))
 }
+
+problem3(x, y, gr)
+```
+
+### 4.
+
+```{r}
+Ki0_gamma <- function(gamma, test_x, train_x) {
+  l2_norm <- apply(train_x, 1, function(t) sqrt(sum((test_x-t)^2)))
+  near_idx <- order(l2_norm, decreasing = F)[1:gamma]
+  res <- rep(0, nrow(train_x))
+  res[near_idx] <- 1
+  return(res)
+}
+
+problem4 <- function(x, y, gr) {
+  Rsq_fold <- rep(0, 40)
+  for (K in 1:max(gr)) {
+    train_x <- x[(gr!=K),]
+    train_y <- y[(gr!=K)]
+    test_x <- x[(gr==K),]
+    test_y <- y[(gr==K)]
+    
+    yhat_fold <- matrix(0, nrow = nrow(test_x), ncol = 40)
+    
+    for (j in 1:nrow(test_x)) {
+      x0 <- test_x[j,]
+      
+      for (g in 41:80) {
+        weights <- Ki0_gamma(g, x0, train_x)
+        
+        train_dat <- data.frame(train_x, target=train_y)
+        colnames(train_dat) <- c(colnames(train_x), "target")
+        LR5 <- lm(target ~., data=train_dat, weights = weights)
+        
+        test_dat <- data.frame(t(x0))
+        colnames(test_dat) <- colnames(test_x)
+        yhat_fold[j,g-40] <- as.numeric(predict(LR5, newdata = test_dat))
+      }
+    }
+    Rsq_fold <- Rsq_fold + apply(yhat_fold, 2, function(t) R_squared(t, test_y))
+  }
+  Rsq_fold <- Rsq_fold/max(gr)
+  return(max(Rsq_fold))
+}
+
+problem4(x, y, gr)
 ```
 
 ```{r}
+Ki0_q_gamma <- function(gamma, q, test_x, train_x, dist_func) {
+  l2_norm <- apply(train_x, 1, function(t) sqrt(sum((test_x-t)^2)))
+  l2_near_idx <- order(l2_norm, decreasing = F)[1:gamma]
+  indicat <- rep(FALSE, nrow(train_x))
+  indicat[l2_near_idx] <- TRUE
+  
+  train_x_N <- train_x[indicat,]
+  lq_norm <- apply(train_x_N, 1, function(t) (sum((abs(test_x-t))^q))^(1/q))
+  lambda <- max(lq_norm)
+  
+  res <- rep(0, nrow(train_x))
+  weights <- sapply(lq_norm, function(z) dist_func(z/lambda))
+  res[indicat] <- weights
+  return(res)
+}
 
+problem5 <- function(x, y, gr) {
+  Rsq_fold1 <- Rsq_fold2 <- Rsq_fold3 <- Rsq_fold4 <-
+    matrix(0, nrow=5, ncol=40)
+  
+  for (K in 1:max(gr)) {
+    train_x <- x[(gr!=K),]
+    train_y <- y[(gr!=K)]
+    test_x <- x[(gr==K),]
+    test_y <- y[(gr==K)]
+    Rsq_each_gq1 <- Rsq_each_gq2 <- Rsq_each_gq3 <- Rsq_each_gq4 <- 
+      matrix(0, nrow=5, ncol=40)
+    
+    for (q in 1:5) {
+      yhat_fold1 <- yhat_fold2 <- yhat_fold3 <- yhat_fold4 <-
+        matrix(0, nrow = nrow(test_x), ncol = 40)
+      
+      for (g in 41:80) {
+        for (j in 1:nrow(test_x)) {
+          x0 <- test_x[j,]
+          weights1 <- Ki0_q_gamma(g, q, x0, train_x, D1_func)
+          weights2 <- Ki0_q_gamma(g, q, x0, train_x, D2_func)
+          weights3 <- Ki0_q_gamma(g, q, x0, train_x, D3_func)
+          weights4 <- Ki0_q_gamma(g, q, x0, train_x, D4_func)
+          
+          train_dat <- data.frame(train_x, target=train_y)
+          colnames(train_dat) <- c(colnames(train_x), "target")
+          LR6 <- lm(target ~., data=train_dat, weights = weights1)
+          LR7 <- lm(target ~., data=train_dat, weights = weights2)
+          LR8 <- lm(target ~., data=train_dat, weights = weights3)
+          LR9 <- lm(target ~., data=train_dat, weights = weights4)
+          
+          test_dat <- data.frame(t(x0))
+          colnames(test_dat) <- colnames(test_x)
+          yhat_fold1[j,g-40] <- as.numeric(predict(LR6, newdata = test_dat))
+          yhat_fold2[j,g-40] <- as.numeric(predict(LR7, newdata = test_dat))
+          yhat_fold3[j,g-40] <- as.numeric(predict(LR8, newdata = test_dat))
+          yhat_fold4[j,g-40] <- as.numeric(predict(LR9, newdata = test_dat))
+        }
+      }
+      Rsq_each_gq1[q,] <- apply(yhat_fold1, 2, function(t) R_squared(t, test_y))
+      Rsq_each_gq2[q,] <- apply(yhat_fold2, 2, function(t) R_squared(t, test_y))
+      Rsq_each_gq3[q,] <- apply(yhat_fold3, 2, function(t) R_squared(t, test_y))
+      Rsq_each_gq4[q,] <- apply(yhat_fold4, 2, function(t) R_squared(t, test_y))
+    }
+    
+    Rsq_fold1 <- Rsq_fold1 + Rsq_each_gq1
+    Rsq_fold2 <- Rsq_fold2 + Rsq_each_gq2
+    Rsq_fold3 <- Rsq_fold3 + Rsq_each_gq3
+    Rsq_fold4 <- Rsq_fold4 + Rsq_each_gq4
+  }
+  Rsq_fold1 <- Rsq_fold1/max(gr)
+  Rsq_fold2 <- Rsq_fold2/max(gr)
+  Rsq_fold3 <- Rsq_fold3/max(gr)
+  Rsq_fold4 <- Rsq_fold4/max(gr)
+  
+  return(data.frame(LR6 = max(Rsq_fold1),
+                    LR7 = max(Rsq_fold2),
+                    LR8 = max(Rsq_fold3),
+                    LR9 = max(Rsq_fold4)))
+}
+
+problem5(x, y, gr)
+```
+
+### 6.
+
+```{r}
+set.seed(54321)
+gr10 <- matrix(rep(seq(5), length=length(y)), length(y), 10)
+gr10 <- apply(gr10, 2, sample)
+
+problem6 <- function(comb_mat, x, y, gr_mat) {
+  res1 <- matrix(0, nrow=2, ncol=10)
+  res2 <- matrix(0, nrow=1, ncol=10)
+  res3 <- matrix(0, nrow=4, ncol=10)
+  res4 <- matrix(0, nrow=1, ncol=10)
+  res5 <- matrix(0, nrow=4, ncol=10)
+  
+  for (r in 1:ncol(gr_mat)) {
+    res1[,r] <- as.numeric(problem1(comb_mat, x, y, gr_mat[,r]))
+    res2[,r] <- as.numeric(problem2(comb_mat, x, y, gr_mat[,r]))
+    res3[,r] <- as.numeric(problem3(x, y, gr_mat[,r]))
+    res4[,r] <- as.numeric(problem4(x, y, gr_mat[,r]))
+    res5[,r] <- as.numeric(problem5(x, y, gr_mat[,r]))
+  }
+  
+  res1 <- apply(res1, 1, mean)
+  res2 <- apply(res2, 1, mean)
+  res3 <- apply(res3, 1, mean)
+  res4 <- apply(res4, 1, mean)
+  res5 <- apply(res5, 1, mean)
+  
+  res <- data.frame(LM = res1[1], RT = res1[2],
+                    BG = res2, LR1 = res3[1],
+                    LR2 = res3[2], LR3 = res3[3],
+                    LR4 = res3[4], LR5 = res4,
+                    LR6 = res5[1], LR7 = res5[2],
+                    LR8 = res5[3], LR9 = res5[4]
+                    )
+  return(res)
+}
+
+final_res <- problem6(combs, x, y, gr10)
 ```
 
 ```{r}
-
+final_res
 ```
 
 ```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
-
+which.max(as.numeric(final_res))
+final_res[10]
 ```
 

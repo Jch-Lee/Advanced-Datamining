@@ -39,3 +39,8 @@ for (k in 1:max(gr)) {
 }
 boot[[1]][,1]
 dim(boot[[1]])
+
+
+
+gamma <- 3
+order(c(0.1,3,4,2,5))[1:gamma]
