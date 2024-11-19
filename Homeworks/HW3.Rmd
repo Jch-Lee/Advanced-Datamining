@@ -1,0 +1,236 @@
+---
+title: "homework 03"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tree)
+library(ISLR)
+data(Auto)
+x <- scale(Auto[,3:7])
+y <- Auto$mpg
+```
+
+```{r}
+head(cbind(x,target=y))
+```
+
+```{r}
+summary(cbind(x,target=y))
+```
+
+```{r}
+dim(cbind(x,target=y))
+```
+
+* 5 predictors and 1 target variable.
+* 392 samples
+
+```{r, eval=F, echo=F}
+?Auto
+```
+
+**mpg(target)**: 연비
+**displacement**: 배기량
+**horsepower**: 마력
+**weight**: 차량 무게 (파운드)
+**acceleration**: 가속도 (0-60mph 도달 시간)
+**year**: 제조 연도 (마지막 두 자리 숫자)
+
+#### 5-fold CV setting
+
+```{r}
+set.seed(13579)
+gr <- sample(rep(seq(5), length=length(y)))
+```
+
+```{r}
+table(gr)
+```
+
+
+#### R-squared function
+
+```{r}
+R_squared <- function(y_pred, y_actual) {
+  rss <- sum((y_actual - y_pred)^2)
+  tss <- sum((y_actual - mean(y_actual))^2)
+  rsq <- 1-(rss/tss)
+  return(rsq)
+}
+```
+
+### 1.
+```{r}
+combs <- list()
+
+for (i in 1:max(gr)) {
+  combs[[i]] <- combn(colnames(x), i)
+}
+```
+
+```{r}
+problem1 <- function(comb_mat, x, y, gr) {
+  res <- matrix(0, nrow=31, ncol=2)
+  for (K in 1:max(gr)) {
+    train_x <- x[(gr!=K),]
+    train_y <- y[(gr!=K)]
+    test_x <- x[(gr==K),]
+    test_y <- y[(gr==K)]
+    
+    Rsq_LM <- Rsq_RT <- c()
+    idx <- 1
+    dat <- NA
+    
+    for (i in 1:length(comb_mat)) {
+      for (p in 1:ncol(comb_mat[[i]])) {
+        predictors <- comb_mat[[i]][,p]
+        
+        train_dat <- data.frame(train_x[,predictors], target=train_y)
+        colnames(train_dat) <- c(predictors, "target")
+        LM <- lm(target ~., data=train_dat)
+        RT <- tree(target ~., data=train_dat)
+        
+        test_dat <- data.frame(test_x[,predictors], target=test_y)
+        colnames(test_dat) <- c(predictors, "target")
+        LM_pred <- as.numeric(predict(LM, newdata = test_dat))
+        RT_pred <- as.numeric(predict(RT, newdata = test_dat))
+        
+        Rsq_LM[idx] <- R_squared(LM_pred, test_y)
+        Rsq_RT[idx] <- R_squared(RT_pred, test_y)
+        idx <- idx+1
+      }
+    }
+    res <- res + cbind(Rsq_LM, Rsq_RT)
+  }
+  res <- res/max(gr)
+  res <- apply(res, 2, max)
+  return(res)
+}
+
+problem1(combs, x, y, gr)
+```
+
+### 2.
+
+```{r}
+problem2 <- function(comb_mat, x, y, gr) {
+  
+  set.seed(111)
+  boot <- vector(mode="list", length=max(gr))
+  for (k in 1:max(gr)) {
+    mat <- matrix(1:sum(gr!=k), sum(gr!=k), 500)
+    mat <- apply(mat, 2, function(t) sample(t, replace=TRUE))
+    boot[[k]] <- mat
+  }
+  
+  res <- rep(0, 31)
+  for (K in 1:max(gr)) {
+    test_x <- x[(gr==K),]
+    test_y <- y[(gr==K)]
+    
+    grs <- boot[[K]]
+    y_hat_fold <- matrix(0, nrow=31, ncol=nrow(test_x))
+    Rsq_fold <- NULL
+    for (i in 1:ncol(grs)) {
+      train_x <- x[grs[,i],]
+      train_y <- y[grs[,i]]
+      
+      idx <- 1
+      RT_pred <- matrix(0, nrow=31, ncol=nrow(test_x))
+      for (i in 1:length(comb_mat)) {
+        for (p in 1:ncol(comb_mat[[i]])) {
+          predictors <- comb_mat[[i]][,p]
+          
+          train_dat <- data.frame(train_x[,predictors], target=train_y)
+          colnames(train_dat) <- c(predictors, "target")
+          RT <- tree(target ~., data=train_dat)
+          
+          test_dat <- data.frame(test_x[,predictors], target=test_y)
+          colnames(test_dat) <- c(predictors, "target")
+          RT_pred[idx,] <- as.numeric(predict(RT, newdata = test_dat))
+
+          idx <- idx+1
+        }
+      }
+      y_hat_fold <- y_hat_fold + RT_pred # 31*n_samples
+    }
+    y_hat_fold <- y_hat_fold/ncol(grs) # 500번 더해졌으니 500으로 나눔
+    Rsq_fold <- apply(y_hat_fold, 1, function(t) R_squared(t, test_y)) # 31개 R^2값 도출
+    res <- res + Rsq_fold
+  }
+  res <- res/max(gr) # 5개 폴드의 평균 부트스트랩 R^2
+  res <- max(res)
+  return(res)
+}
+
+problem2(combs, x, y, gr)
+```
+
+### 3.
+
+```{r}
+D1_func <- function(t) 3/4*(1-t^2)*(abs(t)<1)
+D2_func <- function(t) 71/80*(1-t^3)^3*(abs(t)<1)
+D3_func <- function(t) 1/sqrt(2*pi)*exp(-1/2*t^2)
+D4_func <- function(t) pi/4*cos(pi/2*t)*(abs(t)<1)
+
+Ki0 <- function(lambda, test, train, weight_func) {
+  l2_norm <- sqrt(sum((test-train)^2))
+  res <- weight_func(l2_norm/lambda)
+  return(res)
+}
+```
+
+```{r}
+problem3 <- function(comb_mat, x, y, gr) {
+  for (K in 1:max(gr)) {
+    train_x <- x[(gr!=K),]
+    train_y <- y[(gr!=K)]
+    test_x <- x[(gr==K),]
+    test_y <- y[(gr==K)]
+    
+    for (j in 1:nrow(test_x)) {
+      x0 <- test_x[j,]
+      l2_norm_vec <- apply(train_x, 1, function(t) sqrt(sum((x0-t)^2)))
+      percent_10 <- quantile(l2_norm_vec, probs = 0.1)
+      maximum <- max(l2_norm_vec)
+      
+      lambda <- seq(from=percent_10, to=maximum, length.out=30)
+      
+      for (l in 1:30) {
+        lam_value <- lambda[l]
+        weights1 <- Ki0(lam_value, x0, xi, D1_func)
+        weights2 <- Ki0(lam_value, x0, xi, D2_func)
+        weights3 <- Ki0(lam_value, x0, xi, D3_func)
+        weights4 <- Ki0(lam_value, x0, xi, D4_func)
+        
+        
+      }
+    }
+  }
+}
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

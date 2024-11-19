@@ -1,0 +1,617 @@
+---
+title: "Lecture 05"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+library(tree)
+data(Hitters)
+str(Hitters)
+```
+
+```{r}
+summary(Hitters$Salary)
+```
+
+```{r}
+miss <- is.na(Hitters$Salary)
+sum(miss)
+```
+
+```{r}
+g0 <- lm(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+summary(g0)
+mean(residuals(g0)^2) # Train MSE
+```
+
+```{r}
+## Fit a regression tree
+g <- tree(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+g
+```
+
+-   terminal node 8개 중 하나로 예측됨
+
+```{r}
+summary(g)
+```
+
+```{r}
+mean(residuals(g)^2)
+```
+
+```{r}
+## Draw a tree
+plot(g)
+text(g, pretty=0)
+```
+
+```{r}
+## Another R package for tree
+library(rpart)
+library(rpart.plot)
+## Fit a regression tree
+g2 <- rpart(log(Salary) ~ Years + Hits, subset=!miss, Hitters)
+g2
+```
+
+```{r}
+summary(g2)
+```
+
+```{r}
+## Draw a fancy tree
+prp(g2, branch.lwd=4, branch.col="darkgreen", extra=101)
+```
+
+```{r}
+## Prune a tree
+g3 <- prune.tree(g, best=3)
+plot(g3)
+text(g3, pretty=0)
+```
+
+```{r}
+par(mar=c(4,4,3,4))
+plot(Hitters$Years, Hitters$Hits, pch=16, col="orange",
+     xlab="Years", ylab="Hits", xaxt="n", yaxt="n")
+axis(1, at=c(1,4.5,24), labels=c("1","4.5","24"),
+     tick=FALSE, pos=1)
+axis(4, at=c(1,117.5,238), labels=c("1","117.5","238"),
+     tick=FALSE, las=2)
+abline(v=4.5, lwd=2, col="darkgreen")
+segments(4.5,117.5,25,117.5, lwd=2, lty=1, col="darkgreen")
+text(2, 117.5, font=2, cex=1.4, expression(R[1]))
+text(13, 50, font=2, cex=1.4, expression(R[2]))
+text(13, 180.5, font=2, cex=1.4, expression(R[3]))
+```
+
+```{r}
+## Compute the mean of log Salary for each region
+attach(Hitters)
+mean(log(Salary[Years < 4.5]), na.rm=TRUE)
+mean(log(Salary[Years >= 4.5 & Hits < 117.5]), na.rm=TRUE)
+mean(log(Salary[Years >= 4.5 & Hits >= 117.5]), na.rm=TRUE)
+```
+
+### Continue of Hitters data
+
+```{r}
+library(tree)
+data(Hitters)
+miss <- is.na(Hitters$Salary)
+g <- tree(log(Salary) ~ Years + Hits + RBI + PutOuts + Walks +
+          Runs + Assists + HmRun + Errors + AtBat,
+          subset=!miss, Hitters)
+plot(g)
+text(g, pretty=0)
+summary(g)
+```
+
+```{r}
+## Perform 6 fold CV
+set.seed(1234)
+cv.g <- cv.tree(g, K=6)
+plot(cv.g$size, cv.g$dev, type="b")
+```
+
+```{r}
+## Find the optimal tree size that minimizes MSE
+w <- which.min(cv.g$dev)
+g2 <- prune.tree(g, best=cv.g$size[w])
+plot(g2)
+text(g2, pretty=0)
+```
+
+```{r}
+attach(Hitters)
+newdata <- data.frame(Salary, Years, Hits, RBI, PutOuts, Walks,
+                      Runs, Assists, HmRun, Errors, AtBat)
+newdata <- newdata[!miss,]
+```
+
+```{r}
+## Separate samples into 132 training sets and 131 test sets
+set.seed(1111)
+train <- sample(1:nrow(newdata), ceiling(nrow(newdata)/2))
+```
+
+```{r}
+## Fit a tree with training set and compute test MSE
+tree.train <- tree(log(Salary) ~ ., subset=train, newdata)
+yhat1 <- exp(predict(tree.train, newdata[-train, ])) 
+  # log scale을 붙여서 fit했으므로 실제 Salary를 예측하려면 exp를 붙여야함
+tree.test <- newdata[-train, "Salary"]
+plot(yhat1, tree.test)
+abline(0,1)
+sqrt(mean((yhat1-tree.test)^2))
+```
+
+```{r}
+summary(tree.train)
+```
+
+```{r}
+## Perform 6 fold CV for training sets
+set.seed(1234)
+cv.g <- cv.tree(tree.train, K=6)
+plot(cv.g$size, cv.g$dev, type="b")
+```
+
+```{r}
+## Prune a tree with training set and compute test MSE
+## in the original sclae
+w <- which.min(cv.g$dev)
+prune.tree <- prune.tree(tree.train, best=cv.g$size[w])
+yhat2 <- exp(predict(prune.tree, newdata[-train, ]))
+plot(yhat2, tree.test)
+abline(0,1)
+sqrt(mean((yhat2-tree.test)^2))
+```
+
+```{r}
+## Compute test MSE of least square estimates
+g0 <- lm(log(Salary)~., newdata, subset=train)
+yhat3 <- exp(predict(g0, newdata[-train,]))
+sqrt(mean((yhat3-newdata$Salary[-train])^2))
+```
+
+* 선형 모형이 오히려 트리보다 안좋은 결과가 나옴.(말이 돼?)
+
+```{r}
+set.seed(1122)
+K <- 100
+RES <- matrix(0, K, 3)
+
+for (i in 1:K) {
+  train <- sample(1:nrow(newdata), ceiling(nrow(newdata)/2))
+  y.test <- newdata[-train, "Salary"]
+  g1 <- tree(log(Salary) ~ ., subset=train, newdata)
+  yhat1 <- exp(predict(g1, newdata[-train, ]))
+  cv.g <- cv.tree(g1, K=6)
+  w <- which.min(cv.g$dev)
+  g2 <- prune.tree(g1, best=cv.g$size[w])
+  yhat2 <- exp(predict(g2, newdata[-train, ]))
+  g3 <- lm(log(Salary)~., newdata, subset=train)
+  yhat3 <- exp(predict(g3, newdata[-train,]))
+  RES[i, 1] <- sqrt(mean((yhat1-y.test)^2))
+  RES[i, 2] <- sqrt(mean((yhat2-y.test)^2))
+  RES[i, 3] <- sqrt(mean((yhat3-y.test)^2))
+}
+
+boxplot(RES, boxwex=0.5, col=2:4, main="Hitters Data",
+        names=c("tree", "prune", "lse"),
+        ylab="Mean Squared Errors of Test Sets")
+
+```
+
+```{r}
+library(MASS)
+data(Boston)
+?Boston
+str(Boston)
+```
+
+```{r}
+set.seed(1)
+train <- sample(1:nrow(Boston), nrow(Boston)/2)
+tree.boston <- tree(medv ~ ., Boston, subset=train)
+summary(tree.boston)
+plot(tree.boston)
+text(tree.boston, pretty=0)
+```
+
+```{r}
+cv.boston <- cv.tree(tree.boston, K=5)
+plot(cv.boston$size, cv.boston$dev, type="b")
+which.min(cv.boston$dev)
+```
+
+```{r}
+yhat <- predict(tree.boston, newdata=Boston[-train, ])
+boston.test <- Boston[-train, "medv"]
+plot(yhat, boston.test)
+abline(0, 1)
+mean((yhat - boston.test)^2)
+```
+
+```{r}
+g <- lm(medv ~ ., Boston, subset=train)
+pred <- predict(g, Boston[-train,])
+mean((pred - boston.test)^2)
+```
+
+* 여기선 선형 모형이 트리보다 더 좋음
+
+```{r}
+library(leaps)
+
+fun1 <- function(train, Boston) {
+  g <- regsubsets(medv~., data=Boston, nvmax=13, subset=train)
+  ss <- summary(g)
+  cr <- cbind(ss$adjr2, ss$cp, ss$bic)
+  x.test <- as.matrix(Boston[-train, -14])
+  MSE <- NULL
+  for (i in 1:3) {
+    beta <- rep(0, ncol(Boston))
+    if (i > 1) ww <- which.min(cr[,i])
+    else ww <- which.max(cr[,i])
+    beta[ss$which[ww,]] <- coef(g, ww)
+    preds <- cbind(1, x.test) %*% beta
+    MSE[i] <- mean((preds - Boston[-train, "medv"])^2)
+  }
+  return(MSE)
+}
+
+fun1(train, Boston)
+```
+
+```{r}
+set.seed(1234)
+K <- 100
+RES2 <- matrix(0, K, 5)
+
+for (i in 1:K) {
+  train <- sample(1:nrow(Boston), nrow(Boston)/2)
+  g1 <- tree(medv ~ ., Boston, subset=train)
+  gcv <- cv.tree(g1, K=5)
+  w <- which.min(gcv$dev)
+  g2 <- prune.tree(g1, best=gcv$size[w])
+  yhat1 <- predict(g2, newdata=Boston[-train, ])
+  g3 <- lm(medv ~ ., Boston, subset=train)
+  yhat2 <- predict(g3, Boston[-train,])
+  RES2[i, 1] <- mean((yhat1 - Boston[-train, "medv"])^2)
+  RES2[i, 2] <- mean((yhat2 - Boston[-train, "medv"])^2)
+  RES2[i, 3:5] <- fun1(train, Boston)
+}
+```
+
+```{r}
+nn <- c("tree", "full", "adjR2", "Cp", "bic")
+boxplot(RES2, boxwex=0.5, col=2:6, main="Boston Data",
+        names=nn, ylab="Mean Squared Errors of Test Sets")
+out <- apply(RES2, 2, summary)
+colnames(out) <- nn
+out
+```
+
+### Heart Data
+
+```{r}
+url.ht <- "https://www.statlearning.com/s/Heart.csv"
+Heart <- read.csv(url.ht, h=T)
+summary(Heart)
+```
+
+```{r}
+Heart <- Heart[, colnames(Heart)!="X"]
+Heart[,"Sex"] <- factor(Heart[,"Sex"], 0:1, c("female", "male"))
+Heart[,"Fbs"] <- factor(Heart[,"Fbs"], 0:1, c("false", "true"))
+Heart[,"ExAng"] <- factor(Heart[,"ExAng"], 0:1, c("no", "yes"))
+Heart[,"ChestPain"] <- as.factor(Heart[,"ChestPain"])
+Heart[,"Thal"] <- as.factor(Heart[,"Thal"])
+Heart[,"AHD"] <- as.factor(Heart[,"AHD"])
+```
+
+```{r}
+summary(Heart)
+dim(Heart)
+sum(is.na(Heart))
+```
+
+```{r}
+Heart <- na.omit(Heart)
+dim(Heart)
+summary(Heart)
+```
+
+```{r}
+c1 <- c("Age", "RestBP", "Chol", "RestECG", "MaxHR", "Oldpeak",
+        "Slope", "Ca")
+```
+
+```{r}
+par(mfrow=c(2,4))
+for (i in 1:8) {
+  plot(Heart[,c1[i]], pch=20, main=c1[i],
+  col=as.numeric(Heart$AHD) + 1)
+}
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+g1 <-ggplot(Heart, aes(x=Sex, fill=AHD)) +
+  geom_bar(position="stack")
+g2 <-ggplot(Heart, aes(x=ChestPain,fill=AHD)) +
+  geom_bar(position="stack")
+g3 <-ggplot(Heart, aes(x=Fbs, fill=AHD)) +
+  geom_bar(position="stack")
+g4 <-ggplot(Heart, aes(x=ExAng, fill=AHD)) +
+  geom_bar(position="stack")
+g5 <-ggplot(Heart,aes(x=Thal, fill=AHD)) +
+  geom_bar(position="stack")
+grid.arrange(g1, g2, g3, g4, g5, nrow=2)
+
+```
+
+```{r}
+library(tree)
+tree.heart <- tree(AHD ~., Heart)
+summary(tree.heart)
+tree.heart
+```
+
+```{r}
+plot(tree.heart)
+text(tree.heart)
+plot(tree.heart)
+text(tree.heart, pretty=0)
+```
+
+```{r}
+## predict the probability of each class or class type
+predict(tree.heart, Heart)
+predict(tree.heart, Heart, type="class")
+```
+
+```{r}
+## Compute classification error rate of training observations
+pred <- predict(tree.heart, Heart, type="class")
+table(pred, Heart$AHD)
+mean(pred!=Heart$AHD)
+```
+
+```{r}
+## Separate training and test sets
+set.seed(123)
+train <- sample(1:nrow(Heart), nrow(Heart)/2)
+test <- setdiff(1:nrow(Heart), train)
+heart.test <- Heart[test, ]
+heart.tran <- tree(AHD ~., Heart, subset=train)
+heart.pred <- predict(heart.tran, heart.test, type="class")
+```
+
+```{r}
+## Compute classification error rate
+table(heart.pred, Heart$AHD[test])
+mean(heart.pred!=Heart$AHD[test])
+```
+
+```{r}
+## Run 5-fold cross validataion
+set.seed(1234)
+cv.heart <- cv.tree(heart.tran, FUN=prune.misclass, K=5)
+cv.heart
+```
+
+```{r}
+par(mfrow=c(1, 2))
+plot(cv.heart$size, cv.heart$dev, type="b")
+plot(cv.heart$k, cv.heart$dev, type="b")
+```
+
+```{r}
+## Find the optimal tree size
+w <- cv.heart$size[which.min(cv.heart$dev)]
+```
+
+```{r}
+## Prune the tree with the optimal size
+prune.heart <- prune.misclass(heart.tran, best=w)
+```
+
+```{r}
+par(mfrow=c(1, 2))
+plot(heart.tran)
+text(heart.tran)
+plot(prune.heart)
+text(prune.heart, pretty=0)
+
+```
+
+```{r}
+## Compute classification error of the subtree
+heart.pred <- predict(prune.heart, heart.test, type="class")
+table(heart.pred, Heart$AHD[test])
+mean(heart.pred!=Heart$AHD[test])
+```
+
+```{r}
+set.seed(111)
+K <- 100
+RES1 <- matrix(0, K, 2)
+
+for (i in 1:K) {
+  train <- sample(1:nrow(Heart), floor(nrow(Heart)*2/3))
+  test <- setdiff(1:nrow(Heart), train)
+  heart.test <- Heart[test, ]
+  heart.tran <- tree(AHD ~., Heart, subset=train)
+  heart.pred <- predict(heart.tran, heart.test, type="class")
+  RES1[i,1] <- mean(heart.pred!=Heart$AHD[test])
+  cv.heart <- cv.tree(heart.tran, FUN=prune.misclass, K=5)
+  w <- cv.heart$size[which.min(cv.heart$dev)]
+  prune.heart <- prune.misclass(heart.tran, best=w)
+  heart.pred.cv <- predict(prune.heart, heart.test,
+  type="class")
+  RES1[i,2] <- mean(heart.pred.cv!=Heart$AHD[test])
+}
+
+apply(RES1, 2, mean)
+
+boxplot(RES1, col=c("orange", "lightblue"), boxwex=0.6,
+        names=c("unpruned tree", "pruned tree"),
+        ylab="Classification Error Rate")
+```
+
+```{r}
+library(MASS)
+library(e1071)
+
+set.seed(111)
+K <- 100
+RES2 <- matrix(0, K, 4)
+
+for (i in 1:K) {
+  train <- sample(1:nrow(Heart), floor(nrow(Heart)*2/3))
+  test <- setdiff(1:nrow(Heart), train)
+  y.test <- Heart$AHD[test]
+  
+  ## Logistic regression
+  g1 <- glm(AHD~., data=Heart, family="binomial",
+  subset=train)
+  p1 <- predict(g1, Heart[test,], type="response")
+  pred1 <- rep("No", length(y.test))
+  pred1[p1 > 0.5] <- "Yes"
+  RES2[i, 1] <- mean(pred1!=y.test)
+  
+  ## LDA/QDA
+  g2 <- lda(AHD~., data=Heart, subset=train)
+  g3 <- qda(AHD~., data=Heart, subset=train)
+  pred2 <- predict(g2, Heart[test,])$class
+  pred3 <- predict(g3, Heart[test,])$class
+  RES2[i, 2] <- mean(pred2!=y.test)
+  RES2[i, 3] <- mean(pred3!=y.test)
+  
+  ## Bayes Naive
+  g4 <- naiveBayes(AHD~., data=Heart, subset=train)
+  pred4 <- predict(g4, Heart[test,])
+  RES2[i, 4] <- mean(pred4!=y.test)
+}
+
+boxplot(cbind(RES1, RES2), col=2:8, boxwex=0.6, main="Heart Data",
+        names=c("unpruned tree", "pruned tree", "Logistic",
+                "LDA", "QDA", "NB"),
+        ylab="Classification Error Rate")
+
+apply(cbind(RES1,RES2), 2, mean)
+```
+
+```{r}
+library(class)
+data(iris)
+set.seed(111)
+K <- 100
+RES3 <- matrix(0, K, 5)
+for (i in 1:K) {
+  tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+  g1 <- tree(Species ~., data=iris, subset=tran)
+  g2 <- lda(Species ~., data=iris, subset=tran)
+  g3 <- qda(Species ~., data=iris, subset=tran)
+  g4 <- naiveBayes(Species ~., data=iris, subset=tran)
+  g5 <- knn(iris[tran,-5], iris[-tran,-5], iris[tran, 5], k=5)
+  pred1 <- predict(g1, iris[-tran,], type="class")
+  pred2 <- predict(g2, iris[-tran,])$class
+  pred3 <- predict(g3, iris[-tran,])$class
+  pred4 <- predict(g4, iris[-tran,])
+  for (j in 1:4) {
+    pred <- get(paste("pred", j, sep=""))
+    RES3[i,j] <- mean(iris[-tran, 5]!=pred)
+  }
+  RES3[i,5] <- mean(iris[-tran, 5]!=g5)
+}
+```
+
+```{r}
+boxplot(RES3, col=2:6, boxwex=0.6, main="Iris Data",
+        names=c("tree", "LDA", "QDA", "NB", "KNN"),
+        ylab="Classification Error Rate")
+apply(RES3, 2, mean)
+```
+
+```{r}
+
+```
+
+### Bagging
+
+```{r}
+## Separate training and test sets
+set.seed(123)
+train <- sample(1:nrow(Heart), nrow(Heart)/2)
+test <- setdiff(1:nrow(Heart), train)
+## Classification error rate for single tree
+heart.tran <- tree(AHD ~., subset=train, Heart)
+heart.pred <- predict(heart.tran, Heart[test, ], type="class")
+tree.err <- mean(Heart$AHD[test]!=heart.pred)
+tree.err
+```
+
+```{r}
+## Bagging
+set.seed(12345)
+B <- 500
+n <- nrow(Heart)
+Vote <- rep(0, length(test))
+bag.err <- NULL
+
+for (i in 1:B) {
+  index <- sample(train, replace=TRUE)
+  heart.tran <- tree(AHD ~., Heart[index,])
+  heart.pred <- predict(heart.tran, Heart[test, ], type="class")
+  Vote[heart.pred=="Yes"] <- Vote[heart.pred=="Yes"] + 1
+  preds <- rep("Yes", length(test))
+  preds[Vote < i/2] <- "No"
+  bag.err[i] <- mean(Heart$AHD[test]!=preds)
+}
+data.frame(Vote=Vote, Prop=Vote/B, Pred=Vote/B > 0.5,
+           Label=Heart$AHD[test]=="Yes")
+
+plot(bag.err, type="l", xlab="Number of Trees", col=1,
+     ylab="Classification Error Rate")
+abline(h=tree.err, lty=2, col=2)
+legend("topright", c("Single tree", "Bagging"), col=c(2,1),
+       lty=c(2,1))
+
+```
+
+```{r}
+## n: sample size, B: the number of bootstrap
+## K: the number of simulation
+n <- 100
+B <- 500
+K <- 10
+m <- array(seq(n), c(n, B, K))
+out <- matrix(0, n, K)
+for (i in 1:K) {
+  nm <- apply(m[,,i], 2, function(x) sample(x, replace=TRUE))
+  x <- matrix(0, n, B)
+  for (j in 1:B) x[nm[,j], j] <- 1
+  out[,i] <- apply(x, 1, sum)/B
+}
+boxplot(out, boxwex=0.5, col="orange", ylim=c(0.5,0.7),
+xlab="Simulation replication",
+ylab="Proportion of bootstrapped observations")
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
