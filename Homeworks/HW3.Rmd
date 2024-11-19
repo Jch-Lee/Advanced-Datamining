@@ -2,8 +2,13 @@
 title: "homework 03"
 author: "Lee JongCheol"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  pdf_document:
+    latex_engine: xelatex
+  html_document: default
 ---
+
+### 202482123 이종철 과제3
 
 ```{r}
 library(tree)
@@ -15,6 +20,11 @@ y <- Auto$mpg
 
 ```{r}
 head(cbind(x,target=y))
+
+datt <- data.frame(A=1, B=2, C=3)
+datt <- t(datt)
+colnames(datt) <- "R-sqared"
+as.numeric(datt)
 ```
 
 ```{r}
@@ -27,10 +37,6 @@ dim(cbind(x,target=y))
 
 * 5 predictors and 1 target variable.
 * 392 samples
-
-```{r, eval=F, echo=F}
-?Auto
-```
 
 **mpg(target)**: 연비
 **displacement**: 배기량
@@ -107,10 +113,14 @@ problem1 <- function(comb_mat, x, y, gr) {
   }
   res <- res/max(gr)
   res <- apply(res, 2, max)
+  res <- data.frame(LM=res[1], RT=res[2])
+  res <- t(res)
+  colnames(res) <- "R-squared"
   return(res)
 }
 
-problem1(combs, x, y, gr)
+res1 <- problem1(combs, x, y, gr)
+res1
 ```
 
 ### 2.
@@ -163,10 +173,14 @@ problem2 <- function(comb_mat, x, y, gr) {
   }
   res <- res/max(gr) # 5개 폴드의 평균 부트스트랩 R^2
   res <- max(res)
+  res <- data.frame(BG=res)
+  res <- t(res)
+  colnames(res) <- "R-squared"
   return(res)
 }
 
-problem2(combs, x, y, gr)
+res2 <- problem2(combs, x, y, gr)
+res2
 ```
 
 ### 3.
@@ -235,13 +249,17 @@ problem3 <- function(x, y, gr) {
   Rsq_fold3 <- Rsq_fold3/max(gr)
   Rsq_fold4 <- Rsq_fold4/max(gr)
   
-  return(data.frame(LR1 = max(Rsq_fold1),
+  res <- data.frame(LR1 = max(Rsq_fold1),
                     LR2 = max(Rsq_fold2),
                     LR3 = max(Rsq_fold3),
-                    LR4 = max(Rsq_fold4)))
+                    LR4 = max(Rsq_fold4))
+  res <- t(res)
+  colnames(res) <- "R-squared"
+  return(res)
 }
 
-problem3(x, y, gr)
+res3 <- problem3(x, y, gr)
+res3
 ```
 
 ### 4.
@@ -283,10 +301,14 @@ problem4 <- function(x, y, gr) {
     Rsq_fold <- Rsq_fold + apply(yhat_fold, 2, function(t) R_squared(t, test_y))
   }
   Rsq_fold <- Rsq_fold/max(gr)
-  return(max(Rsq_fold))
+  res = data.frame(LR5=max(Rsq_fold))
+  res <- t(res)
+  colnames(res) <- "R-squared"
+  return(res)
 }
 
-problem4(x, y, gr)
+res4 <- problem4(x, y, gr)
+res4
 ```
 
 ```{r}
@@ -360,14 +382,17 @@ problem5 <- function(x, y, gr) {
   Rsq_fold2 <- Rsq_fold2/max(gr)
   Rsq_fold3 <- Rsq_fold3/max(gr)
   Rsq_fold4 <- Rsq_fold4/max(gr)
-  
-  return(data.frame(LR6 = max(Rsq_fold1),
+  res <- data.frame(LR6 = max(Rsq_fold1),
                     LR7 = max(Rsq_fold2),
                     LR8 = max(Rsq_fold3),
-                    LR9 = max(Rsq_fold4)))
+                    LR9 = max(Rsq_fold4))
+  res <- t(res)
+  colnames(res) <- "R-squared"
+  return(res)
 }
 
-problem5(x, y, gr)
+res5 <- problem5(x, y, gr)
+res5
 ```
 
 ### 6.
@@ -405,6 +430,8 @@ problem6 <- function(comb_mat, x, y, gr_mat) {
                     LR6 = res5[1], LR7 = res5[2],
                     LR8 = res5[3], LR9 = res5[4]
                     )
+  res <- t(res)
+  colnames(res) <- "R-squared"
   return(res)
 }
 
@@ -416,7 +443,6 @@ final_res
 ```
 
 ```{r}
-which.max(as.numeric(final_res))
-final_res[10]
+rownames(final_res)[which.max(as.numeric(final_res))]
 ```
 
