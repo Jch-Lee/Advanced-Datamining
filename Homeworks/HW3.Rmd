@@ -311,6 +311,8 @@ res4 <- problem4(x, y, gr)
 res4
 ```
 
+### 5.
+
 ```{r}
 Ki0_q_gamma <- function(gamma, q, test_x, train_x, dist_func) {
   l2_norm <- apply(train_x, 1, function(t) sqrt(sum((test_x-t)^2)))
