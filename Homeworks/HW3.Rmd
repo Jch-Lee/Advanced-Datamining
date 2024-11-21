@@ -133,12 +133,15 @@ problem2 <- function(comb_mat, x, y, gr) {
     test_x <- x[(gr==K),]
     test_y <- y[(gr==K)]
     
+    fold_train_x <- x[(gr!=K),]
+    fold_train_y <- y[(gr!=K)]
+    
     grs <- boot[[K]]
     y_hat_fold <- matrix(0, nrow=31, ncol=nrow(test_x))
     Rsq_fold <- NULL
     for (i in 1:ncol(grs)) {
-      train_x <- x[grs[,i],]
-      train_y <- y[grs[,i]]
+      train_x <- fold_train_x[grs[,i],]
+      train_y <- fold_train_y[grs[,i]]
       
       idx <- 1
       RT_pred <- matrix(0, nrow=31, ncol=nrow(test_x))
@@ -202,7 +205,7 @@ problem3 <- function(x, y, gr) {
     yhat_fold1 <- yhat_fold2 <- yhat_fold3 <- yhat_fold4 <-
       matrix(0, nrow = nrow(test_x), ncol = 30)
     for (j in 1:nrow(test_x)) {
-      x0 <- test_x[j,]
+      x0 <- test_x[j,]``````````````
       l2_norm_vec <- apply(train_x, 1, function(t) sqrt(sum((x0-t)^2)))
       percent_10 <- quantile(l2_norm_vec, probs = 0.1)
       maximum <- max(l2_norm_vec)
@@ -262,6 +265,7 @@ Ki0_gamma <- function(gamma, test_x, train_x) {
   near_idx <- order(l2_norm, decreasing = F)[1:gamma]
   res <- rep(0, nrow(train_x))
   res[near_idx] <- 1
+  res <- res/gamma
   return(res)
 }
 

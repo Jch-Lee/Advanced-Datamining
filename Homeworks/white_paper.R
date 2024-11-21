@@ -4,31 +4,41 @@ data(Auto)
 x <- scale(Auto[,3:7])
 y <- Auto$mpg
 
-
-rt <- tree(target~., data=data.frame(cbind(x, target=y)))
-
-plot(rt)
-text(rt)
-
-predict(rt)==predict(rt, newdata = data.frame(cbind(x, target=y)))
-
-unique(predict(rt))
-
-sumr <- summary(rt)
-sumr
-
-
-lm <- lm(target ~., data=data.frame(cbind(x,target=y)))
-as.numeric(y-predict(lm))-as.numeric(lm$residuals)
-
-data.frame(x[,c("displacement","weight")], target=y)
-dt <- data.frame(x[,c("displacement")], target=y)
-colnames(dt) <- c("displacement", "target")
-lm(target~., data=dt)
-
-
 set.seed(13579)
 gr <- sample(rep(seq(5), length=length(y)))
+
+R_squared <- function(y_pred, y_actual) {
+  rss <- sum((y_actual - y_pred)^2)
+  tss <- sum((y_actual - mean(y_actual))^2)
+  rsq <- 1-(rss/tss)
+  return(rsq)
+}
+
+### 1.
+combs <- list()
+
+for (i in 1:max(gr)) {
+  combs[[i]] <- combn(colnames(x), i)
+}
+
+combs
+
+for (i in 1:length(combs)) {
+  for (p in 1:ncol(combs[[i]])) {
+    print("--------------------------")
+    print(combs[[i]][,p])
+  }
+}
+predictors <- combs[[2]][,3]
+tr <- data.frame(x[,predictors], target=y)
+RT <- tree(target ~., data=tr)
+
+predict(RT, newdata = data.frame(x[,predictors]))
+RT$y
+
+plot(RT)
+text(RT)
+
 
 set.seed(111)
 boot <- vector(mode="list", length=max(gr))
@@ -37,14 +47,9 @@ for (k in 1:max(gr)) {
   mat <- apply(mat, 2, function(t) sample(t, replace=TRUE))
   boot[[k]] <- mat
 }
-boot[[1]][,1]
+
 dim(boot[[1]])
 
 
-
-gamma <- 3
-order(c(0.1,3,4,2,5))[1:gamma]
-
-
-dat <- data.frame(A=1, B=2, C=3)
-dat
+matrix(c(1,2,3,4,5,6), ncol=2)[c(1,2,2,2),]
+seq(from=1,to=3,length.out=20)
