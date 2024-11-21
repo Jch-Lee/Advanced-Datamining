@@ -1,0 +1,669 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+    \setmainfont[]{NanumGothic}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={homework 03},
+  pdfauthor={Lee JongCheol},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{homework 03}
+\author{Lee JongCheol}
+\date{2024-11-21}
+
+\begin{document}
+\maketitle
+
+\subsubsection{202482123 이종철
+과제3}\label{uxc774uxc885uxcca0-uxacfcuxc81c3}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tree)}
+\FunctionTok{library}\NormalTok{(ISLR)}
+\FunctionTok{data}\NormalTok{(Auto)}
+\NormalTok{x }\OtherTok{\textless{}{-}} \FunctionTok{scale}\NormalTok{(Auto[,}\DecValTok{3}\SpecialCharTok{:}\DecValTok{7}\NormalTok{])}
+\NormalTok{y }\OtherTok{\textless{}{-}}\NormalTok{ Auto}\SpecialCharTok{$}\NormalTok{mpg}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(}\FunctionTok{cbind}\NormalTok{(x,}\AttributeTok{target=}\NormalTok{y))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##   displacement       horsepower          weight         acceleration     
+##  Min.   :-1.2080   Min.   :-1.5190   Min.   :-1.6065   Min.   :-2.73349  
+##  1st Qu.:-0.8544   1st Qu.:-0.7656   1st Qu.:-0.8857   1st Qu.:-0.64024  
+##  Median :-0.4149   Median :-0.2850   Median :-0.2049   Median :-0.01498  
+##  Mean   : 0.0000   Mean   : 0.0000   Mean   : 0.0000   Mean   : 0.00000  
+##  3rd Qu.: 0.7773   3rd Qu.: 0.5594   3rd Qu.: 0.7501   3rd Qu.: 0.53778  
+##  Max.   : 2.4902   Max.   : 3.2613   Max.   : 2.5458   Max.   : 3.35597  
+##       year              target     
+##  Min.   :-1.62324   Min.   : 9.00  
+##  1st Qu.:-0.80885   1st Qu.:17.00  
+##  Median : 0.00554   Median :22.75  
+##  Mean   : 0.00000   Mean   :23.45  
+##  3rd Qu.: 0.81993   3rd Qu.:29.00  
+##  Max.   : 1.63432   Max.   :46.60
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{dim}\NormalTok{(}\FunctionTok{cbind}\NormalTok{(x,}\AttributeTok{target=}\NormalTok{y))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 392   6
+\end{verbatim}
+
+\begin{itemize}
+\tightlist
+\item
+  5 predictors and 1 target variable.\\
+\item
+  392 samples
+\end{itemize}
+
+\textbf{mpg(target)}: 연비\\
+\textbf{displacement}: 배기량\\
+\textbf{horsepower}: 마력\\
+\textbf{weight}: 차량 무게 (파운드)\\
+\textbf{acceleration}: 가속도 (0-60mph 도달 시간)\\
+\textbf{year}: 제조 연도 (마지막 두 자리 숫자)
+
+\subsubsection{5-fold CV setting}\label{fold-cv-setting}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{13579}\NormalTok{)}
+\NormalTok{gr }\OtherTok{\textless{}{-}} \FunctionTok{sample}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\FunctionTok{seq}\NormalTok{(}\DecValTok{5}\NormalTok{), }\AttributeTok{length=}\FunctionTok{length}\NormalTok{(y)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{table}\NormalTok{(gr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## gr
+##  1  2  3  4  5 
+## 79 79 78 78 78
+\end{verbatim}
+
+\subsubsection{R-squared function}\label{r-squared-function}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{R\_squared }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(y\_pred, y\_actual) \{}
+\NormalTok{  rss }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{((y\_actual }\SpecialCharTok{{-}}\NormalTok{ y\_pred)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
+\NormalTok{  tss }\OtherTok{\textless{}{-}} \FunctionTok{sum}\NormalTok{((y\_actual }\SpecialCharTok{{-}} \FunctionTok{mean}\NormalTok{(y\_actual))}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
+\NormalTok{  rsq }\OtherTok{\textless{}{-}} \DecValTok{1}\SpecialCharTok{{-}}\NormalTok{(rss}\SpecialCharTok{/}\NormalTok{tss)}
+  \FunctionTok{return}\NormalTok{(rsq)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{1.}\label{section}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{combs }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+
+\ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{  combs[[i]] }\OtherTok{\textless{}{-}} \FunctionTok{combn}\NormalTok{(}\FunctionTok{colnames}\NormalTok{(x), i)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{problem1 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(comb\_mat, x, y, gr) \{}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{31}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{2}\NormalTok{)}
+  \ControlFlowTok{for}\NormalTok{ (K }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    train\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{!=}\NormalTok{K),]}
+\NormalTok{    train\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{!=}\NormalTok{K)]}
+\NormalTok{    test\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{==}\NormalTok{K),]}
+\NormalTok{    test\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{==}\NormalTok{K)]}
+    
+\NormalTok{    Rsq\_LM }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_RT }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{()}
+\NormalTok{    idx }\OtherTok{\textless{}{-}} \DecValTok{1}
+\NormalTok{    dat }\OtherTok{\textless{}{-}} \ConstantTok{NA}
+    
+    \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(comb\_mat)) \{}
+      \ControlFlowTok{for}\NormalTok{ (p }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(comb\_mat[[i]])) \{}
+\NormalTok{        predictors }\OtherTok{\textless{}{-}}\NormalTok{ comb\_mat[[i]][,p]}
+        
+\NormalTok{        train\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(train\_x[,predictors], }\AttributeTok{target=}\NormalTok{train\_y)}
+        \FunctionTok{colnames}\NormalTok{(train\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(predictors, }\StringTok{"target"}\NormalTok{)}
+\NormalTok{        LM }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat)}
+\NormalTok{        RT }\OtherTok{\textless{}{-}} \FunctionTok{tree}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat)}
+        
+\NormalTok{        test\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(test\_x[,predictors])}
+        \FunctionTok{colnames}\NormalTok{(test\_dat) }\OtherTok{\textless{}{-}}\NormalTok{ predictors}
+\NormalTok{        LM\_pred }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LM, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{        RT\_pred }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(RT, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+        
+\NormalTok{        Rsq\_LM[idx] }\OtherTok{\textless{}{-}} \FunctionTok{R\_squared}\NormalTok{(LM\_pred, test\_y)}
+\NormalTok{        Rsq\_RT[idx] }\OtherTok{\textless{}{-}} \FunctionTok{R\_squared}\NormalTok{(RT\_pred, test\_y)}
+\NormalTok{        idx }\OtherTok{\textless{}{-}}\NormalTok{ idx}\SpecialCharTok{+}\DecValTok{1}
+\NormalTok{      \}}
+\NormalTok{    \}}
+\NormalTok{    res }\OtherTok{\textless{}{-}}\NormalTok{ res }\SpecialCharTok{+} \FunctionTok{cbind}\NormalTok{(Rsq\_LM, Rsq\_RT)}
+\NormalTok{  \}}
+\NormalTok{  res }\OtherTok{\textless{}{-}}\NormalTok{ res}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res, }\DecValTok{2}\NormalTok{, max)}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{LM=}\NormalTok{res[}\DecValTok{1}\NormalTok{], }\AttributeTok{RT=}\NormalTok{res[}\DecValTok{2}\NormalTok{])}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{res1 }\OtherTok{\textless{}{-}} \FunctionTok{problem1}\NormalTok{(combs, x, y, gr)}
+\NormalTok{res1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    R-squared
+## LM 0.8041754
+## RT 0.8025942
+\end{verbatim}
+
+\subsubsection{2.}\label{section-1}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{problem2 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(comb\_mat, x, y, gr) \{}
+  
+  \FunctionTok{set.seed}\NormalTok{(}\DecValTok{111}\NormalTok{)}
+\NormalTok{  boot }\OtherTok{\textless{}{-}} \FunctionTok{vector}\NormalTok{(}\AttributeTok{mode=}\StringTok{"list"}\NormalTok{, }\AttributeTok{length=}\FunctionTok{max}\NormalTok{(gr))}
+  \ControlFlowTok{for}\NormalTok{ (k }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    mat }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{sum}\NormalTok{(gr}\SpecialCharTok{!=}\NormalTok{k), }\FunctionTok{sum}\NormalTok{(gr}\SpecialCharTok{!=}\NormalTok{k), }\DecValTok{500}\NormalTok{)}
+\NormalTok{    mat }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(mat, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{sample}\NormalTok{(t, }\AttributeTok{replace=}\ConstantTok{TRUE}\NormalTok{))}
+\NormalTok{    boot[[k]] }\OtherTok{\textless{}{-}}\NormalTok{ mat}
+\NormalTok{  \}}
+  
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{31}\NormalTok{)}
+  \ControlFlowTok{for}\NormalTok{ (K }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    test\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{==}\NormalTok{K),]}
+\NormalTok{    test\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{==}\NormalTok{K)]}
+    
+\NormalTok{    fold\_train\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{!=}\NormalTok{K),]}
+\NormalTok{    fold\_train\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{!=}\NormalTok{K)]}
+    
+\NormalTok{    grs }\OtherTok{\textless{}{-}}\NormalTok{ boot[[K]]}
+\NormalTok{    y\_hat\_fold }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{31}\NormalTok{, }\AttributeTok{ncol=}\FunctionTok{nrow}\NormalTok{(test\_x))}
+\NormalTok{    Rsq\_fold }\OtherTok{\textless{}{-}} \ConstantTok{NULL}
+    \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(grs)) \{}
+\NormalTok{      train\_x }\OtherTok{\textless{}{-}}\NormalTok{ fold\_train\_x[grs[,i],]}
+\NormalTok{      train\_y }\OtherTok{\textless{}{-}}\NormalTok{ fold\_train\_y[grs[,i]]}
+      
+\NormalTok{      idx }\OtherTok{\textless{}{-}} \DecValTok{1}
+\NormalTok{      RT\_pred }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{31}\NormalTok{, }\AttributeTok{ncol=}\FunctionTok{nrow}\NormalTok{(test\_x))}
+      \ControlFlowTok{for}\NormalTok{ (i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(comb\_mat)) \{}
+        \ControlFlowTok{for}\NormalTok{ (p }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(comb\_mat[[i]])) \{}
+\NormalTok{          predictors }\OtherTok{\textless{}{-}}\NormalTok{ comb\_mat[[i]][,p]}
+          
+\NormalTok{          train\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(train\_x[,predictors], }\AttributeTok{target=}\NormalTok{train\_y)}
+          \FunctionTok{colnames}\NormalTok{(train\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(predictors, }\StringTok{"target"}\NormalTok{)}
+\NormalTok{          BG }\OtherTok{\textless{}{-}} \FunctionTok{tree}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat)}
+          
+\NormalTok{          test\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(test\_x[,predictors])}
+          \FunctionTok{colnames}\NormalTok{(test\_dat) }\OtherTok{\textless{}{-}}\NormalTok{ predictors}
+\NormalTok{          RT\_pred[idx,] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(BG, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+
+\NormalTok{          idx }\OtherTok{\textless{}{-}}\NormalTok{ idx}\SpecialCharTok{+}\DecValTok{1}
+\NormalTok{        \}}
+\NormalTok{      \}}
+\NormalTok{      y\_hat\_fold }\OtherTok{\textless{}{-}}\NormalTok{ y\_hat\_fold }\SpecialCharTok{+}\NormalTok{ RT\_pred }\CommentTok{\# 31*n\_samples}
+\NormalTok{    \}}
+\NormalTok{    y\_hat\_fold }\OtherTok{\textless{}{-}}\NormalTok{ y\_hat\_fold}\SpecialCharTok{/}\FunctionTok{ncol}\NormalTok{(grs) }\CommentTok{\# 500번 더해졌으니 500으로 나눔}
+\NormalTok{    Rsq\_fold }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(y\_hat\_fold, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y)) }\CommentTok{\# 31개 R\^{}2값 도출}
+\NormalTok{    res }\OtherTok{\textless{}{-}}\NormalTok{ res }\SpecialCharTok{+}\NormalTok{ Rsq\_fold}
+\NormalTok{  \}}
+\NormalTok{  res }\OtherTok{\textless{}{-}}\NormalTok{ res}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr) }\CommentTok{\# 5개 폴드의 평균 부트스트랩 R\^{}2}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{max}\NormalTok{(res)}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{BG=}\NormalTok{res)}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{res2 }\OtherTok{\textless{}{-}} \FunctionTok{problem2}\NormalTok{(combs, x, y, gr)}
+\NormalTok{res2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##    R-squared
+## BG  0.846116
+\end{verbatim}
+
+\subsubsection{3.}\label{section-2}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{D1\_func }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t) }\DecValTok{3}\SpecialCharTok{/}\DecValTok{4}\SpecialCharTok{*}\NormalTok{(}\DecValTok{1}\SpecialCharTok{{-}}\NormalTok{t}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}\SpecialCharTok{*}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t)}\SpecialCharTok{\textless{}}\DecValTok{1}\NormalTok{)}
+\NormalTok{D2\_func }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t) }\DecValTok{71}\SpecialCharTok{/}\DecValTok{80}\SpecialCharTok{*}\NormalTok{(}\DecValTok{1}\SpecialCharTok{{-}}\NormalTok{t}\SpecialCharTok{\^{}}\DecValTok{3}\NormalTok{)}\SpecialCharTok{\^{}}\DecValTok{3}\SpecialCharTok{*}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t)}\SpecialCharTok{\textless{}}\DecValTok{1}\NormalTok{)}
+\NormalTok{D3\_func }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t) }\DecValTok{1}\SpecialCharTok{/}\FunctionTok{sqrt}\NormalTok{(}\DecValTok{2}\SpecialCharTok{*}\NormalTok{pi)}\SpecialCharTok{*}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{1}\SpecialCharTok{/}\DecValTok{2}\SpecialCharTok{*}\NormalTok{t}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)}
+\NormalTok{D4\_func }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t) pi}\SpecialCharTok{/}\DecValTok{4}\SpecialCharTok{*}\FunctionTok{cos}\NormalTok{(pi}\SpecialCharTok{/}\DecValTok{2}\SpecialCharTok{*}\NormalTok{t)}\SpecialCharTok{*}\NormalTok{(}\FunctionTok{abs}\NormalTok{(t)}\SpecialCharTok{\textless{}}\DecValTok{1}\NormalTok{)}
+
+\NormalTok{Ki0 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(lambda, test, train, weight\_func) \{}
+\NormalTok{  l2\_norm }\OtherTok{\textless{}{-}} \FunctionTok{sqrt}\NormalTok{(}\FunctionTok{sum}\NormalTok{((test}\SpecialCharTok{{-}}\NormalTok{train)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{))}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{weight\_func}\NormalTok{(l2\_norm}\SpecialCharTok{/}\NormalTok{lambda)}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{problem3 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, y, gr) \{}
+\NormalTok{  Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4 }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{30}\NormalTok{)}
+  \ControlFlowTok{for}\NormalTok{ (K }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    train\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{!=}\NormalTok{K),]}
+\NormalTok{    train\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{!=}\NormalTok{K)]}
+\NormalTok{    test\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{==}\NormalTok{K),]}
+\NormalTok{    test\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{==}\NormalTok{K)]}
+    
+\NormalTok{    yhat\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold4 }\OtherTok{\textless{}{-}}
+      \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow =} \FunctionTok{nrow}\NormalTok{(test\_x), }\AttributeTok{ncol =} \DecValTok{30}\NormalTok{)}
+    \ControlFlowTok{for}\NormalTok{ (j }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(test\_x)) \{}
+\NormalTok{      x0 }\OtherTok{\textless{}{-}}\NormalTok{ test\_x[j,]}
+\NormalTok{      l2\_norm\_vec }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{sum}\NormalTok{((x0}\SpecialCharTok{{-}}\NormalTok{t)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)))}
+\NormalTok{      percent\_10 }\OtherTok{\textless{}{-}} \FunctionTok{quantile}\NormalTok{(l2\_norm\_vec, }\AttributeTok{probs =} \FloatTok{0.1}\NormalTok{)}
+\NormalTok{      maximum }\OtherTok{\textless{}{-}} \FunctionTok{max}\NormalTok{(l2\_norm\_vec)}
+      
+\NormalTok{      lambda }\OtherTok{\textless{}{-}} \FunctionTok{seq}\NormalTok{(}\AttributeTok{from=}\NormalTok{percent\_10, }\AttributeTok{to=}\NormalTok{maximum, }\AttributeTok{length.out=}\DecValTok{30}\NormalTok{)}
+      
+      \ControlFlowTok{for}\NormalTok{ (l }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\DecValTok{30}\NormalTok{) \{}
+\NormalTok{        lam\_value }\OtherTok{\textless{}{-}}\NormalTok{ lambda[l]}
+\NormalTok{        weights1 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{Ki0}\NormalTok{(lam\_value, x0, t, D1\_func))}
+\NormalTok{        weights2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{Ki0}\NormalTok{(lam\_value, x0, t, D2\_func))}
+\NormalTok{        weights3 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{Ki0}\NormalTok{(lam\_value, x0, t, D3\_func))}
+\NormalTok{        weights4 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{Ki0}\NormalTok{(lam\_value, x0, t, D4\_func))}
+        
+\NormalTok{        train\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(train\_x, }\AttributeTok{target=}\NormalTok{train\_y)}
+        \FunctionTok{colnames}\NormalTok{(train\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{colnames}\NormalTok{(train\_x), }\StringTok{"target"}\NormalTok{)}
+\NormalTok{        LR1 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights1)}
+\NormalTok{        LR2 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights2)}
+\NormalTok{        LR3 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights3)}
+\NormalTok{        LR4 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights4)}
+        
+\NormalTok{        test\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\FunctionTok{t}\NormalTok{(x0))}
+        \FunctionTok{colnames}\NormalTok{(test\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{colnames}\NormalTok{(test\_x)}
+\NormalTok{        yhat\_fold1[j,l] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR1, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{        yhat\_fold2[j,l] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR2, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{        yhat\_fold3[j,l] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR3, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{        yhat\_fold4[j,l] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR4, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{      \}}
+\NormalTok{    \}}
+\NormalTok{    Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold1 }\SpecialCharTok{+} \FunctionTok{apply}\NormalTok{(yhat\_fold1, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{    Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2 }\SpecialCharTok{+} \FunctionTok{apply}\NormalTok{(yhat\_fold2, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{    Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3 }\SpecialCharTok{+} \FunctionTok{apply}\NormalTok{(yhat\_fold3, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{    Rsq\_fold4 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4 }\SpecialCharTok{+} \FunctionTok{apply}\NormalTok{(yhat\_fold4, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{  \}}
+\NormalTok{  Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold1}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold4 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+  
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{LR1 =} \FunctionTok{max}\NormalTok{(Rsq\_fold1),}
+                    \AttributeTok{LR2 =} \FunctionTok{max}\NormalTok{(Rsq\_fold2),}
+                    \AttributeTok{LR3 =} \FunctionTok{max}\NormalTok{(Rsq\_fold3),}
+                    \AttributeTok{LR4 =} \FunctionTok{max}\NormalTok{(Rsq\_fold4))}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{res3 }\OtherTok{\textless{}{-}} \FunctionTok{problem3}\NormalTok{(x, y, gr)}
+\NormalTok{res3}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     R-squared
+## LR1 0.8746833
+## LR2 0.8751856
+## LR3 0.8629791
+## LR4 0.8751375
+\end{verbatim}
+
+\subsubsection{4.}\label{section-3}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Ki0\_gamma }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(gamma, test\_x, train\_x) \{}
+\NormalTok{  l2\_norm }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{sum}\NormalTok{((test\_x}\SpecialCharTok{{-}}\NormalTok{t)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)))}
+\NormalTok{  near\_idx }\OtherTok{\textless{}{-}} \FunctionTok{order}\NormalTok{(l2\_norm, }\AttributeTok{decreasing =}\NormalTok{ F)[}\DecValTok{1}\SpecialCharTok{:}\NormalTok{gamma]}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{, }\FunctionTok{nrow}\NormalTok{(train\_x))}
+\NormalTok{  res[near\_idx] }\OtherTok{\textless{}{-}} \DecValTok{1}
+\NormalTok{  res }\OtherTok{\textless{}{-}}\NormalTok{ res}\SpecialCharTok{/}\NormalTok{gamma}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{problem4 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, y, gr) \{}
+\NormalTok{  Rsq\_fold }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{40}\NormalTok{)}
+  \ControlFlowTok{for}\NormalTok{ (K }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    train\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{!=}\NormalTok{K),]}
+\NormalTok{    train\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{!=}\NormalTok{K)]}
+\NormalTok{    test\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{==}\NormalTok{K),]}
+\NormalTok{    test\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{==}\NormalTok{K)]}
+    
+\NormalTok{    yhat\_fold }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow =} \FunctionTok{nrow}\NormalTok{(test\_x), }\AttributeTok{ncol =} \DecValTok{40}\NormalTok{)}
+    
+    \ControlFlowTok{for}\NormalTok{ (j }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(test\_x)) \{}
+\NormalTok{      x0 }\OtherTok{\textless{}{-}}\NormalTok{ test\_x[j,]}
+      
+      \ControlFlowTok{for}\NormalTok{ (g }\ControlFlowTok{in} \DecValTok{41}\SpecialCharTok{:}\DecValTok{80}\NormalTok{) \{}
+\NormalTok{        weights }\OtherTok{\textless{}{-}} \FunctionTok{Ki0\_gamma}\NormalTok{(g, x0, train\_x)}
+        
+\NormalTok{        train\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(train\_x, }\AttributeTok{target=}\NormalTok{train\_y)}
+        \FunctionTok{colnames}\NormalTok{(train\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{colnames}\NormalTok{(train\_x), }\StringTok{"target"}\NormalTok{)}
+\NormalTok{        LR5 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights)}
+        
+\NormalTok{        test\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\FunctionTok{t}\NormalTok{(x0))}
+        \FunctionTok{colnames}\NormalTok{(test\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{colnames}\NormalTok{(test\_x)}
+\NormalTok{        yhat\_fold[j,g}\DecValTok{{-}40}\NormalTok{] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR5, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{      \}}
+\NormalTok{    \}}
+\NormalTok{    Rsq\_fold }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold }\SpecialCharTok{+} \FunctionTok{apply}\NormalTok{(yhat\_fold, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{  \}}
+\NormalTok{  Rsq\_fold }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  res }\OtherTok{=} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{LR5=}\FunctionTok{max}\NormalTok{(Rsq\_fold))}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{res4 }\OtherTok{\textless{}{-}} \FunctionTok{problem4}\NormalTok{(x, y, gr)}
+\NormalTok{res4}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     R-squared
+## LR5 0.8735301
+\end{verbatim}
+
+\subsubsection{5.}\label{section-4}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Ki0\_q\_gamma }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(gamma, q, test\_x, train\_x, dist\_func) \{}
+\NormalTok{  l2\_norm }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{sum}\NormalTok{((test\_x}\SpecialCharTok{{-}}\NormalTok{t)}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{)))}
+\NormalTok{  l2\_near\_idx }\OtherTok{\textless{}{-}} \FunctionTok{order}\NormalTok{(l2\_norm, }\AttributeTok{decreasing =}\NormalTok{ F)[}\DecValTok{1}\SpecialCharTok{:}\NormalTok{gamma]}
+\NormalTok{  indicat }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\ConstantTok{FALSE}\NormalTok{, }\FunctionTok{nrow}\NormalTok{(train\_x))}
+\NormalTok{  indicat[l2\_near\_idx] }\OtherTok{\textless{}{-}} \ConstantTok{TRUE}
+  
+\NormalTok{  train\_x\_N }\OtherTok{\textless{}{-}}\NormalTok{ train\_x[indicat,]}
+\NormalTok{  lq\_norm }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(train\_x\_N, }\DecValTok{1}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) (}\FunctionTok{sum}\NormalTok{((}\FunctionTok{abs}\NormalTok{(test\_x}\SpecialCharTok{{-}}\NormalTok{t))}\SpecialCharTok{\^{}}\NormalTok{q))}\SpecialCharTok{\^{}}\NormalTok{(}\DecValTok{1}\SpecialCharTok{/}\NormalTok{q))}
+\NormalTok{  lambda }\OtherTok{\textless{}{-}} \FunctionTok{max}\NormalTok{(lq\_norm)}
+  
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{rep}\NormalTok{(}\DecValTok{0}\NormalTok{, }\FunctionTok{nrow}\NormalTok{(train\_x))}
+\NormalTok{  weights }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(lq\_norm, }\ControlFlowTok{function}\NormalTok{(z) }\FunctionTok{dist\_func}\NormalTok{(z}\SpecialCharTok{/}\NormalTok{lambda))}
+\NormalTok{  res[indicat] }\OtherTok{\textless{}{-}}\NormalTok{ weights}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{problem5 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(x, y, gr) \{}
+\NormalTok{  Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4 }\OtherTok{\textless{}{-}}
+    \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{5}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{40}\NormalTok{)}
+  
+  \ControlFlowTok{for}\NormalTok{ (K }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{max}\NormalTok{(gr)) \{}
+\NormalTok{    train\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{!=}\NormalTok{K),]}
+\NormalTok{    train\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{!=}\NormalTok{K)]}
+\NormalTok{    test\_x }\OtherTok{\textless{}{-}}\NormalTok{ x[(gr}\SpecialCharTok{==}\NormalTok{K),]}
+\NormalTok{    test\_y }\OtherTok{\textless{}{-}}\NormalTok{ y[(gr}\SpecialCharTok{==}\NormalTok{K)]}
+\NormalTok{    Rsq\_each\_gq1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_each\_gq2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_each\_gq3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_each\_gq4 }\OtherTok{\textless{}{-}} 
+      \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{5}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{40}\NormalTok{)}
+    
+    \ControlFlowTok{for}\NormalTok{ (q }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{) \{}
+\NormalTok{      yhat\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ yhat\_fold4 }\OtherTok{\textless{}{-}}
+        \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow =} \FunctionTok{nrow}\NormalTok{(test\_x), }\AttributeTok{ncol =} \DecValTok{40}\NormalTok{)}
+      
+      \ControlFlowTok{for}\NormalTok{ (g }\ControlFlowTok{in} \DecValTok{41}\SpecialCharTok{:}\DecValTok{80}\NormalTok{) \{}
+        \ControlFlowTok{for}\NormalTok{ (j }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(test\_x)) \{}
+\NormalTok{          x0 }\OtherTok{\textless{}{-}}\NormalTok{ test\_x[j,]}
+\NormalTok{          weights1 }\OtherTok{\textless{}{-}} \FunctionTok{Ki0\_q\_gamma}\NormalTok{(g, q, x0, train\_x, D1\_func)}
+\NormalTok{          weights2 }\OtherTok{\textless{}{-}} \FunctionTok{Ki0\_q\_gamma}\NormalTok{(g, q, x0, train\_x, D2\_func)}
+\NormalTok{          weights3 }\OtherTok{\textless{}{-}} \FunctionTok{Ki0\_q\_gamma}\NormalTok{(g, q, x0, train\_x, D3\_func)}
+\NormalTok{          weights4 }\OtherTok{\textless{}{-}} \FunctionTok{Ki0\_q\_gamma}\NormalTok{(g, q, x0, train\_x, D4\_func)}
+          
+\NormalTok{          train\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(train\_x, }\AttributeTok{target=}\NormalTok{train\_y)}
+          \FunctionTok{colnames}\NormalTok{(train\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\FunctionTok{colnames}\NormalTok{(train\_x), }\StringTok{"target"}\NormalTok{)}
+\NormalTok{          LR6 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights1)}
+\NormalTok{          LR7 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights2)}
+\NormalTok{          LR8 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights3)}
+\NormalTok{          LR9 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(target }\SpecialCharTok{\textasciitilde{}}\NormalTok{., }\AttributeTok{data=}\NormalTok{train\_dat, }\AttributeTok{weights =}\NormalTok{ weights4)}
+          
+\NormalTok{          test\_dat }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\FunctionTok{t}\NormalTok{(x0))}
+          \FunctionTok{colnames}\NormalTok{(test\_dat) }\OtherTok{\textless{}{-}} \FunctionTok{colnames}\NormalTok{(test\_x)}
+\NormalTok{          yhat\_fold1[j,g}\DecValTok{{-}40}\NormalTok{] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR6, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{          yhat\_fold2[j,g}\DecValTok{{-}40}\NormalTok{] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR7, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{          yhat\_fold3[j,g}\DecValTok{{-}40}\NormalTok{] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR8, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{          yhat\_fold4[j,g}\DecValTok{{-}40}\NormalTok{] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{predict}\NormalTok{(LR9, }\AttributeTok{newdata =}\NormalTok{ test\_dat))}
+\NormalTok{        \}}
+\NormalTok{      \}}
+\NormalTok{      Rsq\_each\_gq1[q,] }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(yhat\_fold1, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{      Rsq\_each\_gq2[q,] }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(yhat\_fold2, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{      Rsq\_each\_gq3[q,] }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(yhat\_fold3, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{      Rsq\_each\_gq4[q,] }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(yhat\_fold4, }\DecValTok{2}\NormalTok{, }\ControlFlowTok{function}\NormalTok{(t) }\FunctionTok{R\_squared}\NormalTok{(t, test\_y))}
+\NormalTok{    \}}
+    
+\NormalTok{    Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold1 }\SpecialCharTok{+}\NormalTok{ Rsq\_each\_gq1}
+\NormalTok{    Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2 }\SpecialCharTok{+}\NormalTok{ Rsq\_each\_gq2}
+\NormalTok{    Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3 }\SpecialCharTok{+}\NormalTok{ Rsq\_each\_gq3}
+\NormalTok{    Rsq\_fold4 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4 }\SpecialCharTok{+}\NormalTok{ Rsq\_each\_gq4}
+\NormalTok{  \}}
+\NormalTok{  Rsq\_fold1 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold1}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold2 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold2}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold3 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold3}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  Rsq\_fold4 }\OtherTok{\textless{}{-}}\NormalTok{ Rsq\_fold4}\SpecialCharTok{/}\FunctionTok{max}\NormalTok{(gr)}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{LR6 =} \FunctionTok{max}\NormalTok{(Rsq\_fold1),}
+                    \AttributeTok{LR7 =} \FunctionTok{max}\NormalTok{(Rsq\_fold2),}
+                    \AttributeTok{LR8 =} \FunctionTok{max}\NormalTok{(Rsq\_fold3),}
+                    \AttributeTok{LR9 =} \FunctionTok{max}\NormalTok{(Rsq\_fold4))}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{res5 }\OtherTok{\textless{}{-}} \FunctionTok{problem5}\NormalTok{(x, y, gr)}
+\NormalTok{res5}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     R-squared
+## LR6 0.8771152
+## LR7 0.8776815
+## LR8 0.8753583
+## LR9 0.8774279
+\end{verbatim}
+
+\subsubsection{6.}\label{section-5}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{set.seed}\NormalTok{(}\DecValTok{54321}\NormalTok{)}
+\NormalTok{gr10 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\FunctionTok{rep}\NormalTok{(}\FunctionTok{seq}\NormalTok{(}\DecValTok{5}\NormalTok{), }\AttributeTok{length=}\FunctionTok{length}\NormalTok{(y)), }\FunctionTok{length}\NormalTok{(y), }\DecValTok{10}\NormalTok{)}
+\NormalTok{gr10 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(gr10, }\DecValTok{2}\NormalTok{, sample)}
+
+\NormalTok{problem6 }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(comb\_mat, x, y, gr\_mat) \{}
+\NormalTok{  res1 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{2}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{10}\NormalTok{)}
+\NormalTok{  res2 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{1}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{10}\NormalTok{)}
+\NormalTok{  res3 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{4}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{10}\NormalTok{)}
+\NormalTok{  res4 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{1}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{10}\NormalTok{)}
+\NormalTok{  res5 }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\AttributeTok{nrow=}\DecValTok{4}\NormalTok{, }\AttributeTok{ncol=}\DecValTok{10}\NormalTok{)}
+  
+  \ControlFlowTok{for}\NormalTok{ (r }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(gr\_mat)) \{}
+\NormalTok{    res1[,r] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{problem1}\NormalTok{(comb\_mat, x, y, gr\_mat[,r]))}
+\NormalTok{    res2[,r] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{problem2}\NormalTok{(comb\_mat, x, y, gr\_mat[,r]))}
+\NormalTok{    res3[,r] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{problem3}\NormalTok{(x, y, gr\_mat[,r]))}
+\NormalTok{    res4[,r] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{problem4}\NormalTok{(x, y, gr\_mat[,r]))}
+\NormalTok{    res5[,r] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(}\FunctionTok{problem5}\NormalTok{(x, y, gr\_mat[,r]))}
+\NormalTok{  \}}
+  
+\NormalTok{  res1 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res1, }\DecValTok{1}\NormalTok{, mean)}
+\NormalTok{  res2 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res2, }\DecValTok{1}\NormalTok{, mean)}
+\NormalTok{  res3 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res3, }\DecValTok{1}\NormalTok{, mean)}
+\NormalTok{  res4 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res4, }\DecValTok{1}\NormalTok{, mean)}
+\NormalTok{  res5 }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(res5, }\DecValTok{1}\NormalTok{, mean)}
+  
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{LM =}\NormalTok{ res1[}\DecValTok{1}\NormalTok{], }\AttributeTok{RT =}\NormalTok{ res1[}\DecValTok{2}\NormalTok{],}
+                    \AttributeTok{BG =}\NormalTok{ res2, }\AttributeTok{LR1 =}\NormalTok{ res3[}\DecValTok{1}\NormalTok{],}
+                    \AttributeTok{LR2 =}\NormalTok{ res3[}\DecValTok{2}\NormalTok{], }\AttributeTok{LR3 =}\NormalTok{ res3[}\DecValTok{3}\NormalTok{],}
+                    \AttributeTok{LR4 =}\NormalTok{ res3[}\DecValTok{4}\NormalTok{], }\AttributeTok{LR5 =}\NormalTok{ res4,}
+                    \AttributeTok{LR6 =}\NormalTok{ res5[}\DecValTok{1}\NormalTok{], }\AttributeTok{LR7 =}\NormalTok{ res5[}\DecValTok{2}\NormalTok{],}
+                    \AttributeTok{LR8 =}\NormalTok{ res5[}\DecValTok{3}\NormalTok{], }\AttributeTok{LR9 =}\NormalTok{ res5[}\DecValTok{4}\NormalTok{]}
+\NormalTok{                    )}
+\NormalTok{  res }\OtherTok{\textless{}{-}} \FunctionTok{t}\NormalTok{(res)}
+  \FunctionTok{colnames}\NormalTok{(res) }\OtherTok{\textless{}{-}} \StringTok{"R{-}squared"}
+  \FunctionTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+
+\NormalTok{final\_res }\OtherTok{\textless{}{-}} \FunctionTok{problem6}\NormalTok{(combs, x, y, gr10)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{final\_res}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     R-squared
+## LM  0.8049224
+## RT  0.7965895
+## BG  0.8437017
+## LR1 0.8779391
+## LR2 0.8779272
+## LR3 0.8631833
+## LR4 0.8784493
+## LR5 0.8721175
+## LR6 0.8789374
+## LR7 0.8807941
+## LR8 0.8747680
+## LR9 0.8795372
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{rownames}\NormalTok{(final\_res)[}\FunctionTok{which.max}\NormalTok{(}\FunctionTok{as.numeric}\NormalTok{(final\_res))]}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] "LR7"
+\end{verbatim}
+
+\end{document}
