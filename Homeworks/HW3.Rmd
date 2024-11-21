@@ -205,7 +205,7 @@ problem3 <- function(x, y, gr) {
     yhat_fold1 <- yhat_fold2 <- yhat_fold3 <- yhat_fold4 <-
       matrix(0, nrow = nrow(test_x), ncol = 30)
     for (j in 1:nrow(test_x)) {
-      x0 <- test_x[j,]``````````````
+      x0 <- test_x[j,]
       l2_norm_vec <- apply(train_x, 1, function(t) sqrt(sum((x0-t)^2)))
       percent_10 <- quantile(l2_norm_vec, probs = 0.1)
       maximum <- max(l2_norm_vec)
