@@ -1,0 +1,61 @@
+---
+title: "homewos03"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    latex_engine: lualatex
+mainfont: NanumGothic
+---
+
+### 202482123 이종철 과제3  
+
+```{r}
+library(tree)
+library(ISLR)
+data(Auto)
+x <- scale(Auto[,3:7])
+y <- Auto$mpg
+```
+
+```{r}
+summary(cbind(x,target=y))
+```
+
+```{r}
+dim(cbind(x,target=y))
+```
+
+* 5 predictors and 1 target variable.  
+* 392 samples  
+
+**mpg(target)**: 연비  
+**displacement**: 배기량  
+**horsepower**: 마력  
+**weight**: 차량 무게 (파운드)  
+**acceleration**: 가속도 (0-60mph 도달 시간)  
+**year**: 제조 연도 (마지막 두 자리 숫자)  
+ 
+
+### 5-fold CV setting  
+
+```{r}
+set.seed(13579)
+gr <- sample(rep(seq(5), length=length(y)))
+```
+
+```{r}
+table(gr)
+```
+
+
+### R-squared function
+
+```{r}
+R_squared <- function(y_pred, y_actual) {
+  rss <- sum((y_actual - y_pred)^2)
+  tss <- sum((y_actual - mean(y_actual))^2)
+  rsq <- 1-(rss/tss)
+  return(rsq)
+}
+```

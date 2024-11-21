@@ -10,7 +10,7 @@ mainfont: NanumGothic
 
 ### 202482123 이종철 과제3  
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(tree)
 library(ISLR)
 data(Auto)
