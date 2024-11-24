@@ -53,3 +53,16 @@ dim(boot[[1]])
 
 matrix(c(1,2,3,4,5,6), ncol=2)[c(1,2,2,2),]
 seq(from=1,to=3,length.out=20)
+
+
+for (i in 1:20) {
+  print(-i)
+  for (i in 1:5) {
+    print(i)
+  }
+}
+
+
+vec <- c(1,2,3,4,5)
+abs(vec) < 3
+ifelse(abs(vec) < 3, 2*vec, 0)
