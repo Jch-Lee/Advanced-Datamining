@@ -139,9 +139,9 @@ problem2 <- function(comb_mat, x, y, gr) {
     grs <- boot[[K]]
     y_hat_fold <- matrix(0, nrow=31, ncol=nrow(test_x))
     Rsq_fold <- NULL
-    for (i in 1:ncol(grs)) {
-      train_x <- fold_train_x[grs[,i],]
-      train_y <- fold_train_y[grs[,i]]
+    for (j in 1:ncol(grs)) {
+      train_x <- fold_train_x[grs[,j],]
+      train_y <- fold_train_y[grs[,j]]
       
       idx <- 1
       RT_pred <- matrix(0, nrow=31, ncol=nrow(test_x))
