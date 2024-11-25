@@ -1,0 +1,16 @@
+---
+title: "Lecture07"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+install.packages("remotes")
+remotes::install_github("rstudio/tensorflow")
+library(tensorflow)
+install_tensorflow(envname = "r-tensorflow")
+install.packages("keras")
+library(keras)
+install_keras()
+```

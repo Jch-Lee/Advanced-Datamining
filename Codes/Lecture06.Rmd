@@ -1,0 +1,123 @@
+---
+title: "Lecture06"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+## Simple example (simulate data set)
+set.seed(1)
+x <- matrix(rnorm(20*2), ncol=2)
+y <- c(rep(-1, 10), rep(1, 10))
+x[y==1, ] <- x[y==1, ] + 1
+plot(x, col=(3-y), pch=19, xlab="X1", ylab="X2")
+```
+
+```{r}
+## Support vector classifier with cost=10
+library(e1071)
+dat <- data.frame(x, y=as.factor(y))
+svmfit <- svm(y~., data=dat, kernel="linear", cost=10,
+scale=FALSE)
+plot(svmfit, dat)
+summary(svmfit)
+
+```
+
+```{r}
+names(svmfit)
+svmfit$index
+svmfit$coefs
+
+```
+
+```{r}
+## coefficient beta_0 (negative)
+beta0 <- svmfit$rho
+```
+
+```{r}
+## coefficient beta_1 and beta_2
+beta <- drop(t(svmfit$coefs)%*%x[svmfit$index,])
+```
+
+```{r}
+plot(x, col=(3-y), pch=19, xlab="X1", ylab="X2")
+points(x[svmfit$index, ], pch=5, cex=2)
+abline(beta0 / beta[2], -beta[1] / beta[2])
+abline((beta0 - 1) / beta[2], -beta[1] / beta[2], lty = 2)
+abline((beta0 + 1) / beta[2], -beta[1] / beta[2], lty = 2)
+```
+
+```{r}
+## Different value of tuning parameter (cost=0.1)
+svmfit <- svm(y~., data=dat, kernel="linear", cost=0.1,
+scale=FALSE)
+svmfit$index
+beta <- drop(t(svmfit$coefs)%*%x[svmfit$index,])
+beta0 <- svmfit$rho
+plot(x, col=(3-y), pch=19, xlab="X1", ylab="X2")
+points(x[svmfit$index, ], pch=5, cex=2)
+abline(beta0 / beta[2], -beta[1] / beta[2])
+abline((beta0 - 1) / beta[2], -beta[1] / beta[2], lty = 2)
+abline((beta0 + 1) / beta[2], -beta[1] / beta[2], lty = 2)
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
