@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r}
-install.packages("remotes")
+#install.packages("remotes")
 remotes::install_github("rstudio/tensorflow")
 library(tensorflow)
 install_tensorflow(envname = "r-tensorflow")
@@ -14,3 +14,124 @@ install.packages("keras")
 library(keras)
 install_keras()
 ```
+
+```{r}
+library(ISLR)
+data(Hitters)
+str(Hitters)
+summary(Hitters)
+sum(is.na(Hitters))
+```
+
+```{r}
+Gitters <- na.omit(Hitters)
+n <- nrow(Gitters)
+
+set.seed(1234)
+test <- sample(1:n, floor(n/3))
+g <- lm(Salary ~ ., data=Gitters[-test, ])
+pred <- predict(g, Gitters[test, ])
+with(Gitters[test, ], mean(abs(pred - Salary)))
+```
+
+```{r}
+r0 <- mean(abs(pred - Gitters[test, "Salary"]))
+
+library(glmnet)
+x0 <- model.matrix(Salary ~ ., data=Gitters)
+x <- scale(x0[,-1])
+dim(x)
+```
+
+```{r}
+y <- Gitters$Salary
+length(y)
+```
+
+```{r}
+set.seed(1234)
+gcv <- cv.glmnet(x[-test , ], y[-test], type="mae") 
+coef.min <- as.numeric(coef(gcv, s="lambda.min")) # shrinkage
+coef.1se <- as.numeric(coef(gcv, s="lambda.1se")) # 1 standard error rule
+data.frame(OLS=g$coef, coef.min, coef.1se)
+```
+
+```{r}
+pred1 <- predict(gcv, x[test, ], s="lambda.min")
+pred2 <- predict(gcv, x[test, ], s="lambda.1se")
+```
+
+```{r}
+r1 <- mean(abs(y[test] - pred1))
+r2 <- mean(abs(y[test] - pred2))
+w1 <- which(coef.min[-1]!=0)
+w2 <- which(coef.1se[-1]!=0)
+ww <- which(colnames(Gitters)=="Salary")
+Gitters1 <- Gitters[,c(ww,w1)]
+Gitters2 <- Gitters[,c(ww,w2)]
+g3 <- lm(Salary ~ ., data=Gitters1[-test, ])
+g4 <- lm(Salary ~ ., data=Gitters2[-test, ])
+pred3 <- predict(g3, Gitters1[test, ])
+pred4 <- predict(g4, Gitters2[test, ])
+r3 <- mean(abs(pred3 - Gitters1[test, "Salary"]))
+r4 <- mean(abs(pred4 - Gitters2[test, "Salary"]))
+```
+
+```{r}
+set.seed(1234)
+gcv0 <- cv.glmnet(x[-test , ], y[-test], alpha=0, type="mae")
+pred5 <- predict(gcv0, x[test, ], s="lambda.min")
+pred6 <- predict(gcv0, x[test, ], s="lambda.1se")
+r5 <- mean(abs(y[test] - pred5))
+r6 <- mean(abs(y[test] - pred6))
+out <- matrix(c(r0, r1, r2, r3, r4, r5, r6), ncol=1)
+rownames(out) <- c("lm", "lasso.min", "lasso.1se",
+"lasso.min+lm", "lasso.1se+lm",
+"ridge.min", "ridge.1se")
+colnames(out) <- "MAE"
+out
+```
+* lasso로 변수선택하고, 선형모형 적합한 게 가장 MAE가 낮게 나옴.
+
+```{r}
+data.frame(out, ranking=rank(out))
+```
+
+### Deep Learning
+
+```{r}
+library(tensorflow)
+library(keras)
+library(ggplot2)
+library(reticulate)
+```
+
+```{r}
+modnn <- keras_model_sequential() %>%
+  layer_dense(units=50, activation="relu",
+              input_shape=ncol(x)) %>% # hidden layer
+  layer_dropout(rate=0.4) %>%
+  layer_dense(units=1) # output layer
+```
+
+```{r}
+compile(modnn, loss="mse", optimizer="rmsprop",
+        metrics=list("mean_absolute_error"))
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

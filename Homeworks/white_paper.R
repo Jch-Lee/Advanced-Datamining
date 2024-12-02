@@ -66,3 +66,24 @@ for (i in 1:20) {
 vec <- c(1,2,3,4,5)
 abs(vec) < 3
 ifelse(abs(vec) < 3, 2*vec, 0)
+
+
+vec <- 1:5000000
+res <- rep(NA, 5000000)
+execution_time <- system.time({
+  # 실행할 코드
+  for (i in vec) {
+    res[i] <- sqrt(vec[i])
+  }
+})
+
+print(execution_time)
+
+vec <- 1:5000000
+res <- rep(NA, 5000000)
+execution_time <- system.time({
+  # 실행할 코드
+  res <- sapply(vec, sqrt)
+})
+
+print(execution_time)
