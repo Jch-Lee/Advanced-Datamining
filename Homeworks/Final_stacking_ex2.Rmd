@@ -1,0 +1,157 @@
+---
+title: "Final_stacking_ex2"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+data(College)
+dim(College)
+```
+
+```{r}
+str(College)
+```
+
+```{r}
+library(randomForest)
+library(gbm)
+
+College <- na.omit(College)
+College <- College[,-1]
+te <- sample(1:nrow(College), size = 177)
+testset <- College[te,]
+trainset <- College[-te,]
+
+fold <- sample(rep(1:5, 600/5), size = 600)
+```
+
+```{r}
+LM <- lm(Grad.Rate~., data = trainset)
+RG <- randomForest(Grad.Rate~., data = trainset)
+GBM <- gbm(Grad.Rate~., data = trainset,
+           distribution = "gaussian")
+
+c(RMSE(testset$Grad.Rate, predict(LM, newdata = testset)),
+  RMSE(testset$Grad.Rate, predict(RG, newdata = testset)),
+  RMSE(testset$Grad.Rate, predict(GBM, newdata = testset))
+  )
+```
+
+```{r}
+RMSE(testset$Grad.Rate,
+     (predict(LM, newdata = testset)+
+        predict(RG, newdata = testset)+
+        predict(GBM, newdata = testset))/3)
+```
+
+```{r}
+n_model <- 3
+
+cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_model)
+
+test_pred_list <- lapply(1:n_model, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+test_pred_vec1 <- rep(0, nrow(trainset))
+test_pred_vec2 <- rep(0, nrow(trainset))
+test_pred_vec3 <- rep(0, nrow(trainset))
+
+for (i in 1:max(fold)) {
+  fit1 <- randomForest(Grad.Rate~.,
+                       data = trainset[fold!=i,],
+                       n.trees = 500)
+  fit2 <- gbm(Grad.Rate~.,
+              data = trainset[fold!=i,],
+              distribution = "gaussian")
+  fit3 <- randomForest(Grad.Rate~.,
+                       data = trainset[fold!=i,])
+  
+  cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = trainset[fold==i,])
+  
+  test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = testset)
+  test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = testset)
+  test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = testset)
+}
+
+test_pred_mat <- 
+  lapply(test_pred_list, function(t) apply(t, 1, mean))
+test_pred_mat <-
+  sapply(test_pred_mat, identity)
+
+stage1_trainset <- data.frame(cv_pred_mat,
+                              Grad.Rate=trainset$Grad.Rate)
+stage1_testset <- data.frame(test_pred_mat)
+
+stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=3)
+stage1_test_pred_list <- lapply(1:n_model, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+for (i in 1:max(fold)) {
+  fit1 <- gbm(Grad.Rate~.,
+             data=stage1_trainset[fold!=i,],
+             distribution = "gaussian")
+  fit2 <- gbm(Grad.Rate~.,
+              data = stage1_trainset[fold!=i,],
+              distribution = "gaussian")
+  fit3 <- randomForest(Grad.Rate~.,
+                       data = stage1_trainset[fold!=i,],
+                       mtry = 13)
+  
+  stage1_cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = stage1_trainset[fold==i,])
+  
+  stage1_test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = stage1_testset)
+  stage1_test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = stage1_testset)
+  stage1_test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = stage1_testset)
+}
+
+stage1_test_pred_mat <- 
+  lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+stage1_test_pred_mat <-
+  sapply(stage1_test_pred_mat, identity)
+
+last_trainset <- data.frame(stage1_cv_pred_mat,
+                            Grad.Rate = trainset$Grad.Rate)
+last_testset <- data.frame(stage1_test_pred_mat)
+
+
+last_pred_mat <- matrix(0, nrow = nrow(testset),
+                        ncol = max(fold))
+for (i in 1:max(fold)) {
+  fit_last <- randomForest(Grad.Rate~.,
+                  data = last_trainset[fold!=i,])
+  last_pred_mat[,i] <- predict(fit_last,
+                               newdata = last_testset)
+}
+
+RMSE(testset$Grad.Rate, apply(last_pred_mat, 1, mean))
+
+
+fit_last <- gbm(Grad.Rate~.,
+                  data = last_trainset,
+                  distribution = "gaussian",
+                n.trees = 50)
+
+
+RMSE(testset$Grad.Rate, predict(fit_last,
+                               newdata = last_testset))
+```
+
+```{r}
+
+```

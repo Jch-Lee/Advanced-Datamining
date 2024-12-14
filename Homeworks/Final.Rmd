@@ -1,0 +1,367 @@
+---
+title: "Final_cheatsheet"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Linear Regression - Advertising data
+
+```{r}
+## Open the dataset linked to the book website
+url.ad <- "https://www.statlearning.com/s/Advertising.csv"
+Advertising <- read.csv(url.ad, h=T)
+```
+
+```{r}
+Advertising
+```
+
+```{r}
+lm(sales~TV, data = Advertising)
+```
+
+```{r}
+lm(sales~., data = Advertising)
+lm(sales~X+TV+radio+newspaper, data = Advertising)
+```
+
+### Polynomial Regression - Income data
+
+```{r}
+url.in <- "https://www.statlearning.com/s/Income1.csv"
+income <- read.csv(url.in, h=T)
+```
+
+```{r}
+## Polynomial regression fit
+g <- lm(Income ~ poly(Education, 3), data=income)
+```
+
+```{r}
+plot(g$fitted.values ~ income$Income)
+```
+
+```{r}
+g2 <- lm(sales ~ poly(TV, 2) + poly(newspaper, 3), data=Advertising)
+```
+
+### Best Subset Selection - Hitters data
+
+```{r}
+library(ISLR)
+Hitters <- na.omit(Hitters)
+```
+
+```{r}
+library(leaps)
+fit <- regsubsets(Salary ~ ., Hitters, nbest = 2)
+# fit <- regsubsets(y ~ poly(x, 3), data = data, nvmax = 3)
+# summary(fit)
+```
+
+* formula: 종속 변수와 독립 변수 간의 관계를 정의. 예: y ~ x1 + x2 + x3.
+* data: 데이터를 제공하는 데이터 프레임.
+* nvmax: 선택할 최대 변수 개수(기본값은 모든 변수).
+* method: 변수 선택 방법. 가능한 값:
+  * "exhaustive": 가능한 모든 변수 조합 평가(기본값).
+  * "forward": 전진 선택.
+  * "backward": 후진 제거.
+  * "seqrep": 순차적 대체.
+  
+### Logistic Regression - Default data
+
+```{r}
+library(ISLR)
+data(Default)
+```
+
+```{r}
+g <- glm(Default$default ~ Default$balance, family = "binomial")
+glm(default ~ ., family = "binomial", data = Default)
+```
+
+```{r}
+plot(Default$balance, g$fitted.values)
+```
+
+### Multiclass logistic regression
+
+```{r}
+library(nnet)
+
+# fit <- multinom(y ~ ., data=, trace=F)
+```
+
+### Naive bayes - Default data
+
+```{r}
+library(e1071)
+
+n <- nrow(Default)
+train <- sample(1:n, n*0.7)
+test <- setdiff(1:n, train)
+
+g3 <- naiveBayes(default ~ ., data=Default, subset=train)
+pred3 <- predict(g3, Default)[test]
+```
+
+### KNN classification
+
+```{r}
+library(class)
+data(iris)
+
+set.seed(1234)
+tran <- sample(nrow(iris), size=floor(nrow(iris)*2/3))
+tran.x <- iris[tran, -5]
+test.x <- iris[-tran, -5]
+tran.y <- iris$Species[tran]
+test.y <- iris$Species[-tran]
+# nrow(test.x) 50
+knn.pred <- knn(train = tran.x, test = test.x,
+                cl = tran.y, k=3)
+table(knn.pred, test.y)
+mean(test.y!=knn.pred)
+```
+
+```{r}
+knn.pred <- knn(tran.x, test.x, tran.y, k=13, prob=T)
+table(knn.pred, test.y)
+mean(test.y!=knn.pred) 
+```
+
+매개변수 설명
+train: 학습 데이터를 나타내는 행렬 또는 데이터 프레임. 각 행은 하나의 관측치, 각 열은 변수(특징)입니다.  
+
+test: 테스트 데이터를 나타내는 행렬 또는 데이터 프레임. train과 동일한 형식이어야 합니다.
+
+cl: 학습 데이터의 클래스(범주)를 나타내는 벡터. train의 행 수와 동일한 길이를 가져야 합니다.
+
+k: 가장 가까운 이웃의 수를 지정합니다. 기본값은 1이며, k는 양의 정수여야 합니다.
+
+prob: TRUE로 설정하면, 예측 결과와 함께 각 테스트 데이터 포인트가 가장 가까운 이웃 중 가장 많이 나타난 클래스의 비율을 반환합니다.
+기본값은 FALSE입니다.
+
+use.all: TRUE로 설정하면 거리가 동일한 경우 모든 이웃을 고려합니다.
+FALSE로 설정하면 동일한 거리의 일부 이웃만 무작위로 선택됩니다.
+
+knn 함수 반환값
+클래스 벡터
+각 테스트 데이터에 대해 예측된 클래스 값을 반환합니다.
+prob = TRUE인 경우, 각 예측 클래스에 대한 확률도 함께 반환됩니다.
+
+### Lasso with binary classification - Caravan data
+
+```{r}
+library(ISLR)
+data(Caravan)
+```
+
+```{r}
+library(glmnet)
+y <- Caravan$Purchase
+x <- as.matrix(Caravan[,-86])
+x <- scale(x)
+# glmnet(x, y, alpha=1, family="binomial")
+```
+
+* 기본 역할:
+  * Lasso (L1), Ridge (L2), 또는 Elastic Net 페널티를 적용한 일반화 선형 모델(GLM)을
+  적합. 사용자 제공 값의 람다(λ) 시퀀스에 따라 모델을 적합.
+
+x: 설명 변수(예측 변수) 행렬. (스파스 행렬도 지원)
+y: 종속 변수. 벡터 또는 행렬 형식.
+family: 모델 종류.
+  gaussian: 기본값, 일반 선형 회귀.
+  binomial: 로지스틱 회귀.
+  poisson: 포아송 회귀. 
+  기타 GLM 타입 지원.
+alpha: 페널티 혼합 비율.
+  1: Lasso (L1 정규화).
+  0: Ridge (L2 정규화).
+  0 < alpha < 1: Elastic Net.
+lambda: 정규화 강도를 결정하는 페널티 계수. 기본적으로 함수에서 자동 생성.
+
+```{r}
+cv.glmnet(x, y, family="binomial", alpha=1, nfolds=10,
+          type.measure = "auc")
+```
+* 기본 역할:
+  * 교차 검증(Cross-Validation)을 통해 최적의 람다(λ)를 선택하는 함수.
+  모델 성능을 평가하고, 최적 람다를 기준으로 적합된 모델을 반환.
+
+x, y, family, alpha: glmnet()와 동일.
+nfolds: 교차 검증의 폴드 수. 기본값은 10.
+type.measure: 평가 지표.
+  mse: Mean Squared Error (회귀에서 기본값).
+  deviance: 잔차 편차.
+  class: 분류 정확도 (이진 분류).
+  auc: AUC (이진 분류).
+foldid: 특정 폴드를 지정할 수 있는 사용자 정의 폴드 ID.
+
+결과:
+  최적의 람다(λ)를 포함하는 객체를 반환.
+  lambda.min: 교차 검증에서 최소 에러를 가지는 람다.
+  lambda.1se: 최소 에러에서 표준 오차 내의 가장 간단한 모델의 람다.
+
+### Random Forest - Boston data
+
+```{r}
+library(MASS)
+data(Boston)
+```
+
+```{r}
+library(randomForest)
+randomForest(medv~., data=Boston, mtry=13)
+```
+
+판단 기준
+분류 문제:
+종속 변수가 범주형(factor) 변수인 경우, 자동으로 분류 모델로 동작합니다.
+예: Species ~ . (종속 변수가 factor 형식인 경우)
+
+회귀 문제:
+종속 변수가 연속형(numeric) 변수인 경우, 자동으로 회귀 모델로 동작합니다.
+예: mpg ~ . (종속 변수가 numeric 형식인 경우)
+
+
+주요 매개변수
+formula: 종속 변수와 독립 변수의 관계를 지정하는 포뮬러(y ~ x1 + x2 + ...) 형식입니다.
+data: 사용할 데이터 프레임.
+ntree: 생성할 결정 트리의 개수. 기본값은 500입니다.
+mtry: 각 노드에서 분할을 시도할 변수의 개수.
+분류: sqrt(총 변수 수) (기본값).
+회귀: 총 변수 수/3 (기본값).
+importance: TRUE로 설정하면 변수 중요도를 계산합니다.
+proximity: TRUE로 설정하면 데이터 간의 근접도 행렬을 계산합니다.
+nodesize: 리프 노드에 포함될 최소 관측치 수.
+  분류: 기본값 1.
+  회귀: 기본값 5.
+
+
+결과 값
+randomForest() 함수는 랜덤 포레스트 모델 객체를 반환하며, 주요 구성 요소는 다음과 같습니다:
+
+$confusion: 분류 문제에서의 혼동 행렬.
+$mse: 회귀 문제에서 각 트리에 대한 평균 제곱 오차(MSE).
+$importance: 변수 중요도.
+$err.rate: 분류 문제에서 각 트리에 대한 OOB(Out-of-Bag) 오류율.
+
+### Gradient Boosting Machine - Heart data
+
+```{r}
+library(gbm)
+```
+
+```{r}
+## Create (0,1) response
+Heart0 <- Heart
+Heart0[,"AHD"] <- as.numeric(Heart$AHD)-1
+gb <- gbm(AHD~., data=Heart0, n.trees=1000,
+    distribution="bernoulli", interaction.depth=1, cv.folds = 5)
+```
+
+주요 매개변수
+formula: 종속 변수와 독립 변수 간의 관계를 지정하는 포뮬러 형식.
+예: y ~ x1 + x2.
+data: 사용할 데이터 프레임.
+distribution: 모델의 손실 함수를 결정합니다.
+  "bernoulli": 이진 분류 (로지스틱 회귀).
+  "gaussian": 회귀 (평균 제곱 오차).
+  "multinomial": 다중 클래스 분류.
+  "adaboost": AdaBoost 알고리즘.
+  "poisson": 포아송 회귀.
+  "pairwise": 순위(rank) 문제.
+n.trees: 생성할 트리의 개수.
+더 많은 트리가 성능을 향상시킬 수 있지만, 과적합을 방지하려면 최적의 개수를 찾는 것이 중요합니다.
+interaction.depth: 각 트리의 최대 깊이 (트리의 복잡도).
+기본값은 1이며, 이는 결정 스텀프(깊이가 1인 트리)를 사용합니다.
+shrinkage: 학습률(learning rate).
+기본값은 0.1이며, 값을 작게 설정하면 더 많은 트리가 필요하지만 일반화 성능이 향상될 수 있습니다.
+bag.fraction: 각 반복에서 사용할 훈련 데이터의 비율 (배깅 비율).
+기본값은 0.5로, 데이터의 50%를 무작위로 선택합니다.
+train.fraction: 모델 학습에 사용할 데이터의 비율.
+기본값은 1.0 (전체 데이터 사용).
+
+
+결과 값
+gbm() 함수는 GBM 모델 객체를 반환합니다. 주요 구성 요소는 다음과 같습니다:
+n.trees: 생성된 트리의 개수.
+cv.error: 교차 검증 오류.
+train.error: 훈련 데이터의 오류.
+valid.error: 검증 데이터 오류(있을 경우).
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+

@@ -1,0 +1,483 @@
+---
+title: "Final_stacking_ex"
+author: "Lee JongCheol"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### 데이터 선정 - 회귀
+* Hitters data
+* 나머지 변수들 모두 사용하여 Salary 예측
+
+```{r}
+library(ISLR)
+data(Hitters)
+Hitters <- na.omit(Hitters)
+Hitters <- Hitters[,-c(14,15,20)]
+str(Hitters)
+dim(Hitters)
+```
+
+```{r}
+fold <- sample(rep(1:5, 265/5), size = 263)
+```
+
+### 랜포
+
+```{r}
+x <- Hitters[,names(Hitters)!="Salary"]
+y <- Hitters$Salary
+
+RMSE <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+library(randomForest)
+
+res <- rep(0, 5)
+for (i in 1:max(fold)) {
+  y_pred <- rep(0, sum(fold==i))
+  fit <- randomForest(Salary~., data = cbind(x[fold!=i,], Salary=y[fold!=i]))
+  y_pred <- predict(fit, newdata = as.matrix(x[fold==i,]))
+  res[i] <- RMSE(y[fold==i], y_pred)
+}
+mean(res)
+```
+
+### GBM
+
+```{r}
+x <- Hitters[,!(names(Hitters)%in%c("Salary"))]
+y <- Hitters$Salary
+
+RMSE <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+library(gbm)
+res <- rep(0, 5)
+for (i in 1:max(fold)) {
+  y_pred <- rep(0, sum(fold==i))
+  fit <- gbm(Salary~., data = cbind(x[fold!=i,], Salary=y[fold!=i]),
+             distribution = "gaussian", n.trees = 250)
+  y_pred <- predict(fit, newdata = data.frame(x[fold==i,]))
+  res[i] <- RMSE(y[fold==i], y_pred)
+}
+mean(res)
+```
+
+### 선형회귀
+
+```{r}
+x <- Hitters[,names(Hitters)!="Salary"]
+x <- apply(x, 2, scale)
+y <- Hitters$Salary
+
+RMSE <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+res <- rep(0, 5)
+for (i in 1:max(fold)) {
+  y_pred <- rep(0, sum(fold==i))
+  fit <- lm(Salary~., data = data.frame(cbind(x[fold!=i,], Salary=y[fold!=i])))
+  y_pred <- predict(fit, newdata = data.frame(x[fold==i,]))
+  res[i] <- RMSE(y[fold==i], y_pred)
+}
+mean(res)
+```
+
+### Stacking 구현 - RF, GBM, LM
+
+```{r}
+cv_stacking <- function(data) {
+  
+}
+```
+
+```{r}
+library(randomForest)
+library(gbm)
+
+data("Hitters")
+Hitters <- na.omit(Hitters)
+te <- sample(1:nrow(Hitters), size = 50)
+testset <- Hitters[te,]
+trainset <- Hitters[-te,]
+
+fold <- sample(rep(1:5, 200/5), size = 200)
+
+cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=3)
+
+test_pred_list <- lapply(1:3, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+test_pred_vec1 <- rep(0, nrow(trainset))
+test_pred_vec2 <- rep(0, nrow(trainset))
+test_pred_vec3 <- rep(0, nrow(trainset))
+
+for (i in 1:max(fold)) {
+  fit1 <- lm(Salary~.,
+             data=trainset[fold!=i,])
+  fit2 <- gbm(Salary~.,
+              data = trainset[fold!=i,],
+              distribution = "gaussian",
+              n.trees = 250)
+  fit3 <- randomForest(Salary~.,
+                       data = trainset[fold!=i,])
+  
+  cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = trainset[fold==i,])
+  
+  test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = testset)
+  test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = testset)
+  test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = testset)
+}
+
+test_pred_mat <- 
+  lapply(test_pred_list, function(t) apply(t, 1, mean))
+test_pred_mat <-
+  sapply(test_pred_mat, identity)
+
+stage1_trainset <- data.frame(cv_pred_mat,
+                              Salary=trainset$Salary)
+stage1_testset <- data.frame(test_pred_mat)
+
+stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=3)
+stage1_test_pred_list <- lapply(1:3, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+for (i in 1:max(fold)) {
+  fit1 <- lm(Salary~.,
+             data=stage1_trainset[fold!=i,])
+  fit2 <- gbm(Salary~.,
+              data = stage1_trainset[fold!=i,],
+              distribution = "gaussian",
+              n.trees = 250)
+  fit3 <- randomForest(Salary~.,
+                       data = stage1_trainset[fold!=i,])
+  
+  stage1_cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = stage1_trainset[fold==i,])
+  
+  stage1_test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = stage1_testset)
+  stage1_test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = stage1_testset)
+  stage1_test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = stage1_testset)
+}
+
+stage1_test_pred_mat <- 
+  lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+stage1_test_pred_mat <-
+  sapply(stage1_test_pred_mat, identity)
+
+RMSE(testset$Salary, apply(stage1_test_pred_mat, 1, mean))
+```
+
+### Stacking vs Single Models
+
+```{r}
+library(MASS)
+data(Boston)
+```
+
+```{r}
+library(randomForest)
+library(gbm)
+
+Boston <- na.omit(Boston)
+te <- sample(1:nrow(Boston), size = 106)
+testset <- Boston[te,]
+trainset <- Boston[-te,]
+
+fold <- sample(rep(1:5, 400/5), size = 400)
+```
+
+```{r}
+LM <- lm(crim~., data = trainset)
+RG <- randomForest(crim~., data = trainset)
+GBM <- gbm(crim~., data = trainset,
+           distribution = "gaussian")
+
+c(RMSE(testset$crim, predict(LM, newdata = testset)),
+  RMSE(testset$crim, predict(RG, newdata = testset)),
+  RMSE(testset$crim, predict(GBM, newdata = testset))
+  )
+```
+
+```{r}
+RMSE(testset$crim,
+     (predict(LM, newdata = testset)+
+        predict(RG, newdata = testset)+
+        predict(GBM, newdata = testset))/3)
+```
+
+```{r}
+n_model <- 3
+
+cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_model)
+
+test_pred_list <- lapply(1:n_model, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+test_pred_vec1 <- rep(0, nrow(trainset))
+test_pred_vec2 <- rep(0, nrow(trainset))
+test_pred_vec3 <- rep(0, nrow(trainset))
+
+for (i in 1:max(fold)) {
+  fit1 <- randomForest(crim~.,
+                       data = trainset[fold!=i,],
+                       n.trees = 500)
+  fit2 <- gbm(crim~.,
+              data = trainset[fold!=i,],
+              distribution = "gaussian")
+  fit3 <- randomForest(crim~.,
+                       data = trainset[fold!=i,])
+  
+  cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = trainset[fold==i,])
+  
+  test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = testset)
+  test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = testset)
+  test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = testset)
+}
+
+test_pred_mat <- 
+  lapply(test_pred_list, function(t) apply(t, 1, mean))
+test_pred_mat <-
+  sapply(test_pred_mat, identity)
+
+stage1_trainset <- data.frame(cv_pred_mat,
+                              crim=trainset$crim)
+stage1_testset <- data.frame(test_pred_mat)
+
+stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=3)
+stage1_test_pred_list <- lapply(1:n_model, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+for (i in 1:max(fold)) {
+  fit1 <- gbm(crim~.,
+             data=stage1_trainset[fold!=i,],
+             distribution = "gaussian")
+  fit2 <- gbm(crim~.,
+              data = stage1_trainset[fold!=i,],
+              distribution = "gaussian")
+  fit3 <- randomForest(crim~.,
+                       data = stage1_trainset[fold!=i,],
+              mtry = 13)
+  
+  stage1_cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = stage1_trainset[fold==i,])
+  
+  stage1_test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = stage1_testset)
+  stage1_test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = stage1_testset)
+  stage1_test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = stage1_testset)
+}
+
+stage1_test_pred_mat <- 
+  lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+stage1_test_pred_mat <-
+  sapply(stage1_test_pred_mat, identity)
+
+last_trainset <- data.frame(stage1_cv_pred_mat,
+                            crim = trainset$crim)
+last_testset <- data.frame(stage1_test_pred_mat)
+
+
+last_pred_mat <- matrix(0, nrow = nrow(testset),
+                        ncol = max(fold))
+for (i in 1:max(fold)) {
+  fit_last <- randomForest(crim~.,
+                  data = last_trainset[fold!=i,])
+  last_pred_mat[,i] <- predict(fit_last,
+                               newdata = last_testset)
+}
+
+RMSE(testset$crim, apply(last_pred_mat, 1, mean))
+
+
+fit_last <- gbm(crim~.,
+                  data = last_trainset,
+                  distribution = "gaussian",
+                n.trees = 50)
+
+
+RMSE(testset$crim, predict(fit_last,
+                               newdata = last_testset))
+```
+
+```{r}
+n_model <- 7
+
+cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_model)
+
+test_pred_list <- lapply(1:n_model, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+test_pred_vec1 <- rep(0, nrow(trainset))
+test_pred_vec2 <- rep(0, nrow(trainset))
+test_pred_vec3 <- rep(0, nrow(trainset))
+test_pred_vec4 <- rep(0, nrow(trainset))
+test_pred_vec5 <- rep(0, nrow(trainset))
+test_pred_vec6 <- rep(0, nrow(trainset))
+test_pred_vec7 <- rep(0, nrow(trainset))
+
+for (i in 1:max(fold)) {
+  fit1 <- randomForest(crim~.,
+                       data = trainset[fold!=i,],
+                       ntree = 1000)
+  fit2 <- gbm(crim~.,
+              data = trainset[fold!=i,],
+              distribution = "gaussian",
+              shrinkage = 0.02,
+              interaction.depth = 3)
+  fit3 <- randomForest(crim~.,
+                       data = trainset[fold!=i,],
+                       ntree = 500)
+  fit4 <- lm(crim~., data = trainset[fold!=i,])
+  fit5 <- gbm(crim~.,
+              data = trainset[fold!=i,],
+              distribution = "gaussian",
+              shrinkage = 0.01)
+  fit6 <- randomForest(crim~.,
+                       data = trainset[fold!=i,], mtry=2,
+                       ntree=300)
+  fit7 <- randomForest(crim~.,
+                       data = trainset[fold!=i,],
+                       ntree = 100)
+
+    
+  cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,4] <-
+    predict(fit4, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,5] <-
+    predict(fit5, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,6] <-
+    predict(fit6, newdata = trainset[fold==i,])
+  cv_pred_mat[fold==i,7] <-
+    predict(fit7, newdata = trainset[fold==i,])
+  
+  test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = testset)
+  test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = testset)
+  test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = testset)
+  test_pred_list[[4]][,i] <- 
+    predict(fit1, newdata = testset)
+  test_pred_list[[5]][,i] <- 
+    predict(fit2, newdata = testset)
+  test_pred_list[[6]][,i] <- 
+    predict(fit3, newdata = testset)
+  test_pred_list[[7]][,i] <- 
+    predict(fit3, newdata = testset)
+}
+
+test_pred_mat <- 
+  lapply(test_pred_list, function(t) apply(t, 1, mean))
+test_pred_mat <-
+  sapply(test_pred_mat, identity)
+
+stage1_trainset <- data.frame(cv_pred_mat,
+                              crim=trainset$crim)
+stage1_testset <- data.frame(test_pred_mat)
+
+stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=3)
+stage1_test_pred_list <- lapply(1:3, function(x) matrix(0, nrow = nrow(testset), ncol = max(fold)))
+
+for (i in 1:max(fold)) {
+  fit1 <- gbm(crim~.,
+             data=stage1_trainset[fold!=i,],
+             distribution = "gaussian")
+  fit2 <- gbm(crim~.,
+              data = stage1_trainset[fold!=i,],
+              distribution = "gaussian",
+              shrinkage = 0.05)
+  fit3 <- randomForest(crim~.,
+                       data = stage1_trainset[fold!=i,])
+  
+  stage1_cv_pred_mat[fold==i,1] <-
+    predict(fit1, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,2] <-
+    predict(fit2, newdata = stage1_trainset[fold==i,])
+  stage1_cv_pred_mat[fold==i,3] <-
+    predict(fit3, newdata = stage1_trainset[fold==i,])
+  
+  stage1_test_pred_list[[1]][,i] <- 
+    predict(fit1, newdata = stage1_testset)
+  stage1_test_pred_list[[2]][,i] <- 
+    predict(fit2, newdata = stage1_testset)
+  stage1_test_pred_list[[3]][,i] <- 
+    predict(fit3, newdata = stage1_testset)
+}
+
+stage1_test_pred_mat <- 
+  lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+stage1_test_pred_mat <-
+  sapply(stage1_test_pred_mat, identity)
+
+last_trainset <- data.frame(stage1_cv_pred_mat,
+                            crim = trainset$crim)
+last_testset <- data.frame(stage1_test_pred_mat)
+
+
+last_pred_mat <- matrix(0, nrow = nrow(testset),
+                        ncol = max(fold))
+for (i in 1:max(fold)) {
+  fit_last <- randomForest(crim~.,
+                  data = last_trainset[fold!=i,])
+  last_pred_mat[,i] <- predict(fit_last,
+                               newdata = last_testset)
+}
+
+RMSE(testset$crim, apply(last_pred_mat, 1, mean))
+
+
+fit_last <- gbm(crim~.,
+                data = last_trainset,
+                distribution = "gaussian",
+                n.trees = 100)
+
+
+RMSE(testset$crim, predict(fit_last,
+                               newdata = last_testset))
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
