@@ -15,6 +15,42 @@ College <- na.omit(College)
 College <- College[,-1]
 ```
 
+### EDA
+
+```{r}
+# 데이터프레임 각 변수의 분포를 하나씩 시각화하는 함수
+plot_distributions <- function(data) {
+  # 데이터프레임인지 확인
+  if (!is.data.frame(data)) {
+    stop("Input must be a data frame.")
+  }
+  
+  # 각 변수의 그래프 개별 출력
+  for (col_name in colnames(data)) {
+    column <- data[[col_name]]
+    
+    if (is.numeric(column)) {
+      # 숫자형 변수는 히스토그램
+      hist(column, main = paste("Histogram of", col_name),
+           xlab = col_name, col = "skyblue", border = "white")
+    } else if (is.factor(column) || is.character(column)) {
+      # 범주형 변수는 막대그래프
+      barplot(table(column), main = paste("Barplot of", col_name),
+              xlab = col_name, col = "orange", border = "white")
+    } else {
+      # 다른 데이터 유형은 무시
+      message(paste("Skipping column", col_name, "- unsupported type"))
+    }
+  }
+}
+
+plot_distributions(data.frame(apply(College, 2, log)))
+```
+
+```{r}
+plot_distributions(College)
+```
+
 ### Dataset setting
 
 ```{r}
@@ -90,14 +126,16 @@ f1_score <- function(y_actual, y_pred) {
 }
 ```
 
-### Regression functions
-
+### Functions setting
 
 ```{r}
 frame <- function(train, test) {
   # 함수(y~., )
+  ### return(y_test_pred 벡터)
 }
 ```
+
+
 
 ```{r}
 
