@@ -1,0 +1,117 @@
+---
+title: "Final_Regression"
+output: html_document
+date: "2024-12-15"
+---
+
+```{r}
+library(ISLR)
+data(College)
+dim(College)
+```
+
+```{r}
+College <- na.omit(College)
+College <- College[,-1]
+```
+
+### Dataset setting
+
+```{r}
+rename_and_reorder_columns <- function(data, target_column) {
+  if (!is.data.frame(data)) {
+    stop("Input must be a data frame.")
+  }
+  
+  if (!(target_column %in% colnames(data))) {
+    stop(paste("Column", target_column, "not found in the data frame."))
+  }
+  
+  old_names <- colnames(data)
+  other_columns <- setdiff(old_names, target_column)
+  new_names <- paste0("X", seq_along(other_columns))
+  renamed_columns <- setNames(data, c(new_names, "y")[match(old_names, c(other_columns, target_column))])
+  reordered_data <- renamed_columns[, c(new_names, "y")]
+  
+  return(reordered_data)
+}
+
+rename_and_reorder_columns(College, "Grad.Rate")
+```
+
+### 5-fold validation setting
+
+```{r}
+fold_frame <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    ##### 1. 모델 훈련 및 validation set 예측 #####
+    ##### 2. validation 성능 평가 #####
+    # performance[i] <- 성능
+  }
+  return(mean(performance))
+}
+```
+
+### Performances
+
+**regression**
+```{r}
+RMSE <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+R_squared <- function(y_actual, y_pred) {
+  rss <- sum((y_actual - y_pred)^2)
+  tss <- sum((y_actual - mean(y_actual))^2)
+  rsq <- 1-(rss/tss)
+  return(rsq)
+}
+```
+
+**classification**
+```{r}
+accuracy <- function(y_actual, y_pred) {
+  sum(y_actual==y_pred)/length(y_actual)
+}
+
+f1_score <- function(y_actual, y_pred) {
+  true_positive <- sum(y_actual == 1 & y_pred == 1)
+  false_positive <- sum(y_actual == 0 & y_pred == 1)
+  false_negative <- sum(y_actual == 1 & y_pred == 0)
+  
+  if ((2 * true_positive + false_positive + false_negative) == 0) {
+    return(0)
+  }
+  return(2 * true_positive / (2 * true_positive + false_positive + false_negative))
+}
+```
+
+### Regression functions
+
+
+```{r}
+frame <- function(train, test) {
+  # 함수(y~., )
+}
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
