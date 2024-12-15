@@ -82,6 +82,37 @@ exdata <- rename_and_reorder_columns(College, "Grad.Rate")
 exdata2 <- rename_and_reorder_columns(Advertising, "sales")
 ```
 
+```{r}
+# 표준화를 수행하는 함수 정의
+standardize_data <- function(train, test, feature_name) {
+  # train과 test가 데이터프레임인지 확인
+  if (!is.data.frame(train) || !is.data.frame(test)) {
+    stop("train과 test는 데이터프레임이어야 합니다.")
+  }
+  
+  # feature_name 열이 존재하는지 확인
+  if (!(feature_name %in% colnames(train)) || !(feature_name %in% colnames(test))) {
+    stop("feature_name 열이 train 또는 test에 존재하지 않습니다.")
+  }
+  
+  # 1. 훈련 데이터에서 평균과 표준편차 계산
+  train_mean <- mean(train[[feature_name]], na.rm = TRUE)
+  train_sd <- sd(train[[feature_name]], na.rm = TRUE)
+  
+  # 2. 훈련 데이터 표준화
+  train[[paste0(feature_name, "_scaled")]] <- (train[[feature_name]] - train_mean) / train_sd
+  
+  # 3. 테스트 데이터 표준화 (훈련 데이터의 평균과 표준편차 사용)
+  test[[paste0(feature_name, "_scaled")]] <- (test[[feature_name]] - train_mean) / train_sd
+  
+  # 4. 결과 반환 (표준화된 train과 test)
+  return(list(
+    train = train,
+    test = test
+  ))
+}
+```
+
 ### 5-fold validation setting
 
 ```{r}
@@ -161,7 +192,8 @@ stack331 <- function(trainset, testset) {
     fit2 <- gbm(y~.,
                 data = trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 250)
+                n.trees = 250,
+                verbose = F)
     fit3 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,])
     
@@ -207,7 +239,8 @@ stack331 <- function(trainset, testset) {
     fit2 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 250)
+                n.trees = 250,
+                verbose = F)
     fit3 <- randomForest(y~.,
                          data = stage2_trainset[stack_fold!=i,])
     
@@ -244,7 +277,8 @@ stack331 <- function(trainset, testset) {
   for (i in 1:max(stack_fold)) {
     fit_last <- gbm(y~.,
                     data = last_trainset[stack_fold!=i,],
-                    n.trees = 50)
+                    n.trees = 50,
+                verbose = F)
     last_pred_mat[,i] <- predict(fit_last,
                                  newdata = last_testset)
   }
@@ -277,14 +311,16 @@ stack41 <- function(trainset, testset) {
     fit2 <- gbm(y~.,
                 data = trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 150)
+                n.trees = 150,
+                verbose = F)
     fit3 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,],
                          ntree = 200)
     fit4 <- gbm(y~.,
                 data = trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 50)
+                n.trees = 50,
+                verbose = F)
     
     stage1_cv_pred_mat[stack_fold==i,1] <-
       predict(fit1, newx = apply(as.matrix(trainset[stack_fold==i, -ncol(trainset)]),
@@ -404,12 +440,12 @@ RF_5fold(exdata)
 RF_5fold(exdata2)
 ```
 
-### 5-fold testing - RF
+### 5-fold testing - GBM
 
 ```{r}
-library(randomForest)
+library(gbm)
 
-RF_5fold <- function(data) {
+GBM_5fold <- function(data) {
   fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
   performance <- rep(0, max(fold))
   for (i in 1:max(fold)) {
@@ -425,8 +461,8 @@ RF_5fold <- function(data) {
   return(mean(performance))
 }
 
-RF_5fold(exdata)
-RF_5fold(exdata2)
+GBM_5fold(exdata)
+GBM_5fold(exdata2)
 ```
 
 ```{r}

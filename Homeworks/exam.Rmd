@@ -1,0 +1,1889 @@
+---
+title: "exam"
+output: html_document
+date: "2024-12-15"
+---
+### Data
+
+```{r}
+load("C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/exam.Rdata")
+```
+
+```{r}
+rename_and_reorder_columns <- function(data, target_column) {
+  if (!is.data.frame(data)) {
+    stop("Input must be a data frame.")
+  }
+  
+  if (!(target_column %in% colnames(data))) {
+    stop(paste("Column", target_column, "not found in the data frame."))
+  }
+  
+  old_names <- colnames(data)
+  other_columns <- setdiff(old_names, target_column)
+  new_names <- paste0("X", seq_along(other_columns))
+  renamed_columns <- setNames(data, c(new_names, "y")[match(old_names, c(other_columns, target_column))])
+  reordered_data <- renamed_columns[, c(new_names, "y")]
+  
+  return(reordered_data)
+}
+
+```
+
+```{r}
+# 데이터프레임 각 변수의 분포를 하나씩 시각화하는 함수
+plot_distributions <- function(data) {
+  # 데이터프레임인지 확인
+  if (!is.data.frame(data)) {
+    stop("Input must be a data frame.")
+  }
+  
+  # 각 변수의 그래프 개별 출력
+  for (col_name in colnames(data)) {
+    column <- data[[col_name]]
+    
+    if (is.numeric(column)) {
+      # 숫자형 변수는 히스토그램
+      hist(column, main = paste("Histogram of", col_name),
+           xlab = col_name, col = "skyblue", border = "white")
+    } else if (is.factor(column) || is.character(column)) {
+      # 범주형 변수는 막대그래프
+      barplot(table(column), main = paste("Barplot of", col_name),
+              xlab = col_name, col = "orange", border = "white")
+    } else {
+      # 다른 데이터 유형은 무시
+      message(paste("Skipping column", col_name, "- unsupported type"))
+    }
+  }
+}
+
+```
+
+```{r}
+
+```
+
+```{r}
+# 표준화를 수행하는 함수 정의
+standardize_data <- function(train, test, idx_list) {
+  for (i in idx_list) {
+    mean <- mean(train[,i])
+    sd <- sd(train[,i])
+    
+    train[,i] <- (train[,i]-mean)/sd
+    test[,i] <- (test[,i]-mean)/sd
+  }
+  return(list(train=train, test=test))
+}
+```
+
+```{r}
+target_encoding <- function(train, test, factor_columns, target_column) {
+  # train과 test가 데이터프레임인지 확인
+  if (!is.data.frame(train) || !is.data.frame(test)) {
+    stop("train과 test는 데이터프레임이어야 합니다.")
+  }
+  
+  # factor_columns과 target_column 확인
+  if (!all(factor_columns %in% colnames(train)) || !(target_column %in% colnames(train))) {
+    stop("factor_columns 또는 target_column이 train 데이터에 존재하지 않습니다.")
+  }
+  if (!all(factor_columns %in% colnames(test))) {
+    stop("factor_columns이 test 데이터에 존재하지 않습니다.")
+  }
+  
+  # 반복적으로 각 factor 열에 대해 타겟 인코딩 수행
+  for (col in factor_columns) {
+    # factor 열인지 확인
+    if (!is.factor(train[[col]])) {
+      print(paste("열", col, "은 factor 형식이어야 합니다."))
+    }
+    
+    # 훈련 데이터에서 평균값 계산
+    encoding_map <- aggregate(train[[target_column]], by = list(train[[col]]), mean)
+    print(encoding_map)
+    colnames(encoding_map) <- c(col, paste0(col, "_Encoded"))
+    
+    # 훈련 데이터에 인코딩 값 추가
+    train <- merge(train, encoding_map, by = col, all.x = TRUE)
+
+    # 테스트 데이터에 인코딩 값 추가 (훈련 데이터의 평균값 사용)
+    test <- merge(test, encoding_map, by = col, all.x = TRUE)
+  }
+  
+  # 결과 반환
+  return(list(train = train[,colnames(train)!="y"], test = test))
+}
+```
+
+```{r}
+plot_distributions(x.train)
+```
+
+```{r}
+cor(x.train[,-c(6,8,9,10,12)])
+cor(apply(x.train, 2, as.numeric))
+```
+
+```{r}
+trainset <- data.frame(x.train, y=y.train)
+testset <- data.frame(x.test)
+
+trainset$V1 <- log(trainset$V1+1e-10)
+trainset$V4 <- log(trainset$V4+1e-10)
+trainset$V7 <- log(trainset$V7+1e-10)
+trainset$V11 <- log(trainset$V11+1e-10)
+
+trainset <- rename_and_reorder_columns(trainset, "y")
+colnames(testset) <- colnames(trainset)[colnames(trainset)!="y"]
+
+```
+
+### Performances
+
+**regression**
+```{r}
+RMSE <- function(y_actual, y_pred) {
+  sqrt(mean((y_actual - y_pred)^2))
+}
+
+R_squared <- function(y_actual, y_pred) {
+  rss <- sum((y_actual - y_pred)^2)
+  tss <- sum((y_actual - mean(y_actual))^2)
+  rsq <- 1-(rss/tss)
+  return(rsq)
+}
+```
+
+```{r}
+library(glmnet)
+library(gbm)
+library(randomForest)
+```
+
+```{r}
+```
+
+### 5-fold testing - RF
+
+```{r}
+library(randomForest)
+
+RF_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- randomForest(y~., data = trainset, ntree=700)
+    y_pred <- predict(fit, newdata = validset)
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+RF_5fold(trainset)
+```
+
+```{r}
+LM_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- lm(y~., data = trainset)
+    y_pred <- predict(fit, newdata = validset)
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+LM_5fold(trainset)
+```
+
+### 5-fold testing - GBM
+
+```{r}
+library(gbm)
+
+GBM_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- gbm(y~., data = trainset,
+               verbose = F,
+               n.trees = 250,
+               interaction.depth =1,
+               shrinkage = 0.05) # ~500 (200이 잘나옴)
+    y_pred <- predict(fit, newdata = validset)
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+GBM_5fold(trainset)
+```
+
+```{r}
+library(glmnet)
+RIDGE_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- glmnet(trainset[,-ncol(trainset)], trainset$y,
+                  alpha=1, lambda=0.9,
+                  family="gaussian")
+    y_pred <- predict(fit, as.matrix(validset[,-ncol(validset)]))
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+RIDGE_5fold(trainset)
+```
+
+```{r}
+GBM_RF_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit1 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 200,
+               shrinkage = 0.05)
+    y_pred1 <- predict(fit1, newdata = validset)
+
+    fit2 <- randomForest(y~., data = trainset, ntree = 500)
+    y_pred2 <- predict(fit2, newdata = validset)
+    
+    y_pred <- (y_pred1+y_pred2)/2
+    
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+
+GBM_RF_5fold(trainset)
+```
+
+```{r}
+GBM_LM_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit1 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 500)
+    y_pred1 <- predict(fit1, newdata = validset)
+
+    fit2 <- lm(y~., data = trainset)
+    y_pred2 <- predict(fit2, newdata = validset)
+    
+    y_pred <- (y_pred1+y_pred2)/2
+    
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+GBM_LM_5fold(trainset)
+```
+
+```{r}
+stack41 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 4
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage1_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage1_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    verbose = F,
+                    n.trees = 200)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+
+stack41_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack41(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack41_5fold(trainset)
+
+```
+
+```{r}
+stack431 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 4
+  n_models2 <- 3
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 500,
+                verbose = F,
+                shrinkage = 0.05)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,])
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 350,
+                verbose = F,
+                shrinkage = 0.05)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- randomForest(y~.,
+                         data = stage2_trainset[stack_fold!=i,])
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage2_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage2_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    n.trees = 200,
+                    verbose = F,
+                    distribution = "gaussian",
+                shrinkage = 0.05)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+stack431_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack431(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack431_5fold(trainset)
+```
+
+```{r}
+stack431_stack41_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    
+    y_pred1 <- rep(0, nrow(validset))
+    y_pred2 <- rep(0, nrow(validset))
+    y_pred1 <- stack431(trainset = trainset, testset = validset)
+    y_pred2 <- stack431(trainset = trainset, testset = validset)
+    
+    y_pred <- (y_pred1+y_pred2)/2
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack431_stack41_5fold(rename_and_reorder_columns(data.frame(data_pca$x[,1:3], y=y.train), "y"))
+
+```
+
+```{r}
+stack40 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 4
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  return(apply(stage1_test_pred_mat, 1, mean))
+}
+
+
+
+stack40_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack40(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack40_5fold(trainset)
+```
+
+```{r}
+library(glmnet)
+stack10.1 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 10
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 50,
+                verbose = F)
+    fit9 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                   trainset$y[stack_fold!=i],
+                    alpha=1, lambda=0.1,
+                    family="gaussian")
+    fit10 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                    trainset$y[stack_fold!=i],
+                    alpha=0, lambda=0.1,
+                    family="gaussian")
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,9] <-
+      predict(fit9, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    stage1_cv_pred_mat[stack_fold==i,10] <-
+      predict(fit10, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+    stage1_test_pred_list[[9]][,i] <- 
+      predict(fit9, as.matrix(testset[,-ncol(testset)]))
+    stage1_test_pred_list[[10]][,i] <- 
+      predict(fit10, as.matrix(testset[,-ncol(testset)]))
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage1_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage1_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    verbose = F,
+                    n.trees = 500)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+
+stack10.1_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack10.1(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack10.1_5fold(trainset)
+```
+
+```{r}
+stack10.0 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 10
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 50,
+                verbose = F)
+    fit9 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                   trainset$y[stack_fold!=i],
+                    alpha=1, lambda=0.1,
+                    family="gaussian")
+    fit10 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                    trainset$y[stack_fold!=i],
+                    alpha=0, lambda=0.1,
+                    family="gaussian")
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,9] <-
+      predict(fit9, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    stage1_cv_pred_mat[stack_fold==i,10] <-
+      predict(fit10, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+    stage1_test_pred_list[[9]][,i] <- 
+      predict(fit9, as.matrix(testset[,-ncol(testset)]))
+    stage1_test_pred_list[[10]][,i] <- 
+      predict(fit10, as.matrix(testset[,-ncol(testset)]))
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage1_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage1_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    verbose = F,
+                    n.trees = 200)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+
+stack10.0_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack10.0(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack10.0_5fold(trainset)
+```
+
+```{r}
+stack10.3.1 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 10
+  n_models2 <- 3
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 50,
+                verbose = F)
+    fit9 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                   trainset$y[stack_fold!=i],
+                    alpha=1, lambda=0.1,
+                    family="gaussian")
+    fit10 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                    trainset$y[stack_fold!=i],
+                    alpha=0, lambda=0.1,
+                    family="gaussian")
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,9] <-
+      predict(fit9, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    stage1_cv_pred_mat[stack_fold==i,10] <-
+      predict(fit10, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+    stage1_test_pred_list[[9]][,i] <- 
+      predict(fit9, as.matrix(testset[,-ncol(testset)]))
+    stage1_test_pred_list[[10]][,i] <- 
+      predict(fit10, as.matrix(testset[,-ncol(testset)]))
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 350,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = stage2_trainset[stack_fold!=i,])
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage2_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage2_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    verbose = F,
+                    n.trees = 200)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+
+stack10.3.1_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack10.3.1(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack10.3.1_5fold(trainset)
+```
+
+```{r}
+stack10.3.0 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 10
+  n_models2 <- 3
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 50,
+                verbose = F)
+    fit9 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                   trainset$y[stack_fold!=i],
+                    alpha=1, lambda=0.1,
+                    family="gaussian")
+    fit10 <- glmnet(trainset[stack_fold!=i,-ncol(trainset)],
+                    trainset$y[stack_fold!=i],
+                    alpha=0, lambda=0.1,
+                    family="gaussian")
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,9] <-
+      predict(fit9, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    stage1_cv_pred_mat[stack_fold==i,10] <-
+      predict(fit10, as.matrix(trainset[stack_fold==i,-ncol(trainset)]))
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+    stage1_test_pred_list[[9]][,i] <- 
+      predict(fit9, as.matrix(testset[,-ncol(testset)]))
+    stage1_test_pred_list[[10]][,i] <- 
+      predict(fit10, as.matrix(testset[,-ncol(testset)]))
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 350,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F)
+    fit3 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F)
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  
+  return(apply(stage2_test_pred_mat, 1, mean))
+}
+
+
+
+stack10.3.0_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack10.3.0(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack10.3.0_5fold(trainset)
+```
+
+```{r}
+stack5.2.0 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 5
+  n_models2 <- 2
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F,
+                shrinkage = 0.5)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F,
+                shrinkage = 0.5)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.5)
+    fit5 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 200,
+                         do.trace=F)
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, trainset[stack_fold==i,-ncol(trainset)])
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, testset[,-ncol(testset)])
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 150,
+                verbose = F)
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  return(apply(stage2_test_pred_mat, 1, mean))
+}
+
+
+
+stack5.2.0_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack5.2.0(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack5.2.0_5fold(trainset)
+```
+
+```{r}
+stack8.3.0 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 8
+  n_models2 <- 3
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F,
+                shrinkage = 0.1)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 300,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 150,
+                verbose = F,
+                shrinkage = 0.08)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F,
+                shrinkage = 0.05)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 100,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F,
+                shrinkage = 0.13)
+
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 150,
+                verbose = F,
+                shrinkage = 0.05)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  stack_pred <- apply(stage2_test_pred_mat, 1, mean)
+  
+  gbm1 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 220,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+  gbm2 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 200,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+  gbm3 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 180,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+    
+  y_pred1 <- predict(gbm1, newdata = testset)
+  y_pred2 <- predict(gbm2, newdata = testset)
+  y_pred3 <- predict(gbm3, newdata = testset)
+  
+  final_pred <- (0.7*stack_pred + 1.1*y_pred1 +
+                   1.1*y_pred2 + 1.1*y_pred3)/4
+  
+  return(final_pred)
+}
+
+
+
+stack8.3.0_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,-ncol(data)]
+    y_act <- data[fold==i,ncol(data)]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack8.3.0(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = y_act,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack8.3.0_5fold(trainset)
+```
+
+```{r}
+stack8.3.1 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 8
+  n_models2 <- 3
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 300,
+                verbose = F,
+                shrinkage = 0.05)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 400,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 1000,
+                         do.trace=F)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    fit5 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 100,
+                verbose = F,
+                shrinkage = 0.05)
+    fit6 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 700,
+                         do.trace=F)
+    fit7 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 500,
+                         do.trace=F)
+    fit8 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,5] <-
+      predict(fit5, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,6] <-
+      predict(fit6, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,7] <-
+      predict(fit7, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,8] <-
+      predict(fit8, newdata = trainset[stack_fold==i,])
+
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = testset)
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
+    stage1_test_pred_list[[5]][,i] <- 
+      predict(fit5, newdata = testset)
+    stage1_test_pred_list[[6]][,i] <- 
+      predict(fit6, newdata = testset)
+    stage1_test_pred_list[[7]][,i] <- 
+      predict(fit7, newdata = testset)
+    stage1_test_pred_list[[8]][,i] <- 
+      predict(fit8, newdata = testset)
+  }
+  
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
+  
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 200,
+                verbose = F,
+                shrinkage = 0.05)
+    fit2 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250,
+                verbose = F,
+                shrinkage = 0.05)
+    fit3 <- gbm(y~.,
+                data = stage2_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 150,
+                verbose = F,
+                shrinkage = 0.05)
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newdata = stage2_testx)
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage2_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage2_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    verbose = F,
+                    n.trees = 200,
+                shrinkage = 0.05)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+
+
+stack8.3.1_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack8.3.1(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack8.3.1_5fold(trainset)
+```
+
+```{r}
+stack8.3.0_gbm_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    
+    fit1 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 200,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+    y_pred1 <- predict(fit1, newdata = validset)
+    y_pred2 <- stack8.3.0(trainset = trainset, testset = validset)
+    
+    y_pred <- (y_pred1+y_pred2)/2
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack8.3.0_gbm_5fold(trainset)
+```
+
+```{r}
+stack8.3.0_gbm_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    
+    fit1 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 200,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+    fit2 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 250,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+    fit3 <- gbm(y~., data = trainset,
+               verbose = F, n.trees = 150,
+               shrinkage = 0.05,
+               distribution = "gaussian")
+    
+    y_pred1 <- predict(fit1, newdata = validset)
+    y_pred2 <- predict(fit2, newdata = validset)
+    y_pred3 <- predict(fit3, newdata = validset)
+    y_pred4 <- stack8.3.0(trainset = trainset, testset = validset)
+    
+    y_pred <- (1.1*y_pred1+1.1*y_pred2+1.1*y_pred3+0.7*y_pred4)/4
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack8.3.0_gbm_5fold(trainset)
+```
+
