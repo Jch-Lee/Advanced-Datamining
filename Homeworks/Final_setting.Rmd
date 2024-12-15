@@ -129,20 +129,179 @@ f1_score <- function(y_actual, y_pred) {
 ### Functions setting
 
 ```{r}
-frame <- function(train, test) {
-  # 함수(y~., )
-  ### return(y_test_pred 벡터)
+library(glmnet)
+library(gbm)
+library(randomForest)
+
+cv_model <- cv.glmnet(as.matrix(College[,-ncol(College)]),
+                      College[,17], alpha = 1,
+                      nfolds = 3)
+pp <- predict(cv_model, newx = as.matrix(College[,-ncol(College)]), s="lambda.min")
+RMSE(College$Grad.Rate, pp)
+
+stack331 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 3
+  n_models2 <- 3
+  
+  testx <- testset[, -ncol(testset)]
+  
+  cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  test_pred_vec1 <- rep(0, nrow(trainset))
+  test_pred_vec2 <- rep(0, nrow(trainset))
+  test_pred_vec3 <- rep(0, nrow(trainset))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- cv.glmnet(apply(as.matrix(trainset[stack_fold!=i, -ncol(trainset)]),
+                            2, scale),
+                      trainset$y[stack_fold!=i],
+                      alpha = 1,
+                      nfolds = 3)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,])
+    
+    cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newx = apply(as.matrix(trainset[stack_fold==i, -ncol(trainset)]),
+                                 2, scale),
+              s = "lambda.1se")
+    cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = trainset[stack_fold==i,])
+    cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    
+    test_pred_list[[1]][,i] <- 
+      predict(fit1,
+              newx = apply(as.matrix(testx),
+                           2, scale),
+              s = "lambda.1se")
+    test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = testset)
+    test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = testset)
+  }
+  
+  test_pred_mat <-
+    lapply(test_pred_list, function(t) apply(t, 1, mean))
+  test_pred_mat <-
+    sapply(test_pred_mat, identity)
+  
+  stage1_trainset <- data.frame(cv_pred_mat, y=trainset$y)
+  stage1_testx <- data.frame(test_pred_mat)
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage1_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset), ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- cv.glmnet(apply(as.matrix(stage1_trainset[stack_fold!=i, -ncol(stage1_trainset)]),
+                            2, scale),
+                      stage1_trainset$y[stack_fold!=i],
+                      alpha = 1,
+                      nfolds = 3)
+    fit2 <- gbm(y~.,
+                data = stage1_trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 250)
+    fit3 <- randomForest(y~.,
+                         data = stage1_trainset[stack_fold!=i,])
+    
+    stage1_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newx = apply(as.matrix(stage1_trainset[stack_fold==i, -ncol(stage1_trainset)]),
+                                 2, scale),
+              s = "lambda.1se")
+    stage1_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage1_trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage1_trainset[stack_fold==i,])
+    
+    stage1_test_pred_list[[1]][,i] <- 
+      predict(fit1, newx = apply(as.matrix(stage1_testx),
+                                 2, scale),
+              s = "lambda.1se")
+    stage1_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage1_testx)
+    stage1_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage1_testx)
+  }
+  
+  stage1_test_pred_mat <- 
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage1_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage1_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- randomForest(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    ntree = 50)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
 }
+
+exdata <- rename_and_reorder_columns(College, "Grad.Rate")
+exres <- stack331(exdata[1:700,], exdata[701:nrow(exdata),])
+RMSE(exdata[701:nrow(exdata),"y"], exres)
 ```
 
-
+### 5-fold testing - stack331 model
 
 ```{r}
+stack331_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack331(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
 
+stack331_5fold(exdata)
 ```
 
-```{r}
+### 5-fold testing - RF
 
+```{r}
+library(randomForest)
+
+RF_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- randomForest(y~., data = trainset)
+    y_pred <- predict(fit, newdata = validset)
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+RF_5fold(exdata)
 ```
 
 ```{r}
