@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r}
+library(ISLR)
 data(College)
 dim(College)
 ```
@@ -64,7 +65,7 @@ for (i in 1:max(fold)) {
   fit2 <- gbm(Grad.Rate~.,
               data = trainset[fold!=i,],
               distribution = "gaussian")
-  fit3 <- randomForest(Grad.Rate~.,
+  fit3 <- lm(Grad.Rate~.,
                        data = trainset[fold!=i,])
   
   cv_pred_mat[fold==i,1] <-
@@ -98,9 +99,8 @@ for (i in 1:max(fold)) {
   fit1 <- gbm(Grad.Rate~.,
              data=stage1_trainset[fold!=i,],
              distribution = "gaussian")
-  fit2 <- gbm(Grad.Rate~.,
-              data = stage1_trainset[fold!=i,],
-              distribution = "gaussian")
+  fit2 <- lm(Grad.Rate~.,
+              data = stage1_trainset[fold!=i,])
   fit3 <- randomForest(Grad.Rate~.,
                        data = stage1_trainset[fold!=i,],
                        mtry = 13)
@@ -147,6 +147,11 @@ fit_last <- gbm(Grad.Rate~.,
                   distribution = "gaussian",
                 n.trees = 50)
 
+
+RMSE(testset$Grad.Rate, (predict(fit_last,
+                               newdata = last_testset) + (predict(LM, newdata = testset)+
+        predict(RG, newdata = testset)+
+        predict(GBM, newdata = testset))/3)/2)
 
 RMSE(testset$Grad.Rate, predict(fit_last,
                                newdata = last_testset))

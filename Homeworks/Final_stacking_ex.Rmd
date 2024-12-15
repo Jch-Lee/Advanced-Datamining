@@ -464,6 +464,11 @@ fit_last <- gbm(crim~.,
                 distribution = "gaussian",
                 n.trees = 100)
 
+RMSE(testset$crim, (predict(fit_last,
+                               newdata = last_testset) +
+                      (predict(LM, newdata = testset)+
+        predict(RG, newdata = testset)+
+        predict(GBM, newdata = testset))/3)/2)
 
 RMSE(testset$crim, predict(fit_last,
                                newdata = last_testset))
