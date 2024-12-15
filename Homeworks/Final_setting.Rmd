@@ -8,11 +8,17 @@ date: "2024-12-15"
 library(ISLR)
 data(College)
 dim(College)
+
+url.ad <- "https://www.statlearning.com/s/Advertising.csv"
+Advertising <- read.csv(url.ad, h=T)
+
 ```
 
 ```{r}
 College <- na.omit(College)
 College <- College[,-1]
+
+Advertising <- Advertising[,-1]
 ```
 
 ### EDA
@@ -72,7 +78,8 @@ rename_and_reorder_columns <- function(data, target_column) {
   return(reordered_data)
 }
 
-rename_and_reorder_columns(College, "Grad.Rate")
+exdata <- rename_and_reorder_columns(College, "Grad.Rate")
+exdata2 <- rename_and_reorder_columns(Advertising, "sales")
 ```
 
 ### 5-fold validation setting
@@ -133,12 +140,6 @@ library(glmnet)
 library(gbm)
 library(randomForest)
 
-cv_model <- cv.glmnet(as.matrix(College[,-ncol(College)]),
-                      College[,17], alpha = 1,
-                      nfolds = 3)
-pp <- predict(cv_model, newx = as.matrix(College[,-ncol(College)]), s="lambda.min")
-RMSE(College$Grad.Rate, pp)
-
 stack331 <- function(trainset, testset) {
   stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
   n_models1 <- 3
@@ -146,14 +147,10 @@ stack331 <- function(trainset, testset) {
   
   testx <- testset[, -ncol(testset)]
   
-  cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
-  test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
                                                    nrow = nrow(testset),
                                                    ncol = max(stack_fold)))
-  
-  test_pred_vec1 <- rep(0, nrow(trainset))
-  test_pred_vec2 <- rep(0, nrow(trainset))
-  test_pred_vec3 <- rep(0, nrow(trainset))
   
   for (i in 1:max(stack_fold)) {
     fit1 <- cv.glmnet(apply(as.matrix(trainset[stack_fold!=i, -ncol(trainset)]),
@@ -168,71 +165,152 @@ stack331 <- function(trainset, testset) {
     fit3 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,])
     
-    cv_pred_mat[stack_fold==i,1] <-
+    stage1_cv_pred_mat[stack_fold==i,1] <-
       predict(fit1, newx = apply(as.matrix(trainset[stack_fold==i, -ncol(trainset)]),
                                  2, scale),
               s = "lambda.1se")
-    cv_pred_mat[stack_fold==i,2] <-
+    stage1_cv_pred_mat[stack_fold==i,2] <-
       predict(fit2, newdata = trainset[stack_fold==i,])
-    cv_pred_mat[stack_fold==i,3] <-
+    stage1_cv_pred_mat[stack_fold==i,3] <-
       predict(fit3, newdata = trainset[stack_fold==i,])
     
-    test_pred_list[[1]][,i] <- 
+    stage1_test_pred_list[[1]][,i] <- 
       predict(fit1,
               newx = apply(as.matrix(testx),
                            2, scale),
               s = "lambda.1se")
-    test_pred_list[[2]][,i] <- 
+    stage1_test_pred_list[[2]][,i] <- 
       predict(fit2, newdata = testset)
-    test_pred_list[[3]][,i] <- 
+    stage1_test_pred_list[[3]][,i] <- 
       predict(fit3, newdata = testset)
   }
   
-  test_pred_mat <-
-    lapply(test_pred_list, function(t) apply(t, 1, mean))
-  test_pred_mat <-
-    sapply(test_pred_mat, identity)
+  stage1_test_pred_mat <-
+    lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
+  stage1_test_pred_mat <-
+    sapply(stage1_test_pred_mat, identity)
   
-  stage1_trainset <- data.frame(cv_pred_mat, y=trainset$y)
-  stage1_testx <- data.frame(test_pred_mat)
+  stage2_trainset <- data.frame(stage1_cv_pred_mat, y=trainset$y)
+  stage2_testx <- data.frame(stage1_test_pred_mat)
   
-  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
-  stage1_test_pred_list <- lapply(1:n_models2,
-                                  function(x) matrix(0, nrow = nrow(testset), ncol = max(stack_fold)))
+  stage2_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models2)
+  stage2_test_pred_list <- lapply(1:n_models2,
+                                  function(x) matrix(0, nrow = nrow(testset),
+                                                     ncol = max(stack_fold)))
   
   for (i in 1:max(stack_fold)) {
-    fit1 <- cv.glmnet(apply(as.matrix(stage1_trainset[stack_fold!=i, -ncol(stage1_trainset)]),
+    fit1 <- cv.glmnet(apply(as.matrix(stage2_trainset[stack_fold!=i, -ncol(stage2_trainset)]),
                             2, scale),
-                      stage1_trainset$y[stack_fold!=i],
+                      stage2_trainset$y[stack_fold!=i],
                       alpha = 1,
                       nfolds = 3)
     fit2 <- gbm(y~.,
-                data = stage1_trainset[stack_fold!=i,],
+                data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
                 n.trees = 250)
     fit3 <- randomForest(y~.,
-                         data = stage1_trainset[stack_fold!=i,])
+                         data = stage2_trainset[stack_fold!=i,])
+    
+    stage2_cv_pred_mat[stack_fold==i,1] <-
+      predict(fit1, newx = apply(as.matrix(stage2_trainset[stack_fold==i, -ncol(stage2_trainset)]),
+                                 2, scale),
+              s = "lambda.1se")
+    stage2_cv_pred_mat[stack_fold==i,2] <-
+      predict(fit2, newdata = stage2_trainset[stack_fold==i,])
+    stage2_cv_pred_mat[stack_fold==i,3] <-
+      predict(fit3, newdata = stage2_trainset[stack_fold==i,])
+    
+    stage2_test_pred_list[[1]][,i] <- 
+      predict(fit1, newx = apply(as.matrix(stage2_testx),
+                                 2, scale),
+              s = "lambda.1se")
+    stage2_test_pred_list[[2]][,i] <- 
+      predict(fit2, newdata = stage2_testx)
+    stage2_test_pred_list[[3]][,i] <- 
+      predict(fit3, newdata = stage2_testx)
+  }
+  
+  stage2_test_pred_mat <- 
+    lapply(stage2_test_pred_list, function(t) apply(t, 1, mean))
+  stage2_test_pred_mat <-
+    sapply(stage2_test_pred_mat, identity)
+  
+  last_trainset <- data.frame(stage2_cv_pred_mat,
+                              y = trainset$y)
+  last_testset <- data.frame(stage2_test_pred_mat)
+  last_pred_mat <- matrix(0, nrow = nrow(testset),
+                          ncol = max(stack_fold))
+  
+  for (i in 1:max(stack_fold)) {
+    fit_last <- gbm(y~.,
+                    data = last_trainset[stack_fold!=i,],
+                    n.trees = 50)
+    last_pred_mat[,i] <- predict(fit_last,
+                                 newdata = last_testset)
+  }
+  
+  return(apply(last_pred_mat, 1, mean))
+}
+
+exres <- stack331(exdata[1:700,], exdata[701:nrow(exdata),])
+RMSE(exdata[701:nrow(exdata),"y"], exres)
+```
+
+```{r}
+stack41 <- function(trainset, testset) {
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  n_models1 <- 4
+  
+  testx <- testset[, -ncol(testset)]
+  
+  stage1_cv_pred_mat <- matrix(0, nrow=nrow(trainset), ncol=n_models1)
+  stage1_test_pred_list <- lapply(1:n_models1, function(x) matrix(0,
+                                                   nrow = nrow(testset),
+                                                   ncol = max(stack_fold)))
+  
+  for (i in 1:max(stack_fold)) {
+    fit1 <- cv.glmnet(apply(as.matrix(trainset[stack_fold!=i, -ncol(trainset)]),
+                            2, scale),
+                      trainset$y[stack_fold!=i],
+                      alpha = 1,
+                      nfolds = 3)
+    fit2 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 150)
+    fit3 <- randomForest(y~.,
+                         data = trainset[stack_fold!=i,],
+                         ntree = 200)
+    fit4 <- gbm(y~.,
+                data = trainset[stack_fold!=i,],
+                distribution = "gaussian",
+                n.trees = 50)
     
     stage1_cv_pred_mat[stack_fold==i,1] <-
-      predict(fit1, newx = apply(as.matrix(stage1_trainset[stack_fold==i, -ncol(stage1_trainset)]),
+      predict(fit1, newx = apply(as.matrix(trainset[stack_fold==i, -ncol(trainset)]),
                                  2, scale),
               s = "lambda.1se")
     stage1_cv_pred_mat[stack_fold==i,2] <-
-      predict(fit2, newdata = stage1_trainset[stack_fold==i,])
+      predict(fit2, newdata = trainset[stack_fold==i,])
     stage1_cv_pred_mat[stack_fold==i,3] <-
-      predict(fit3, newdata = stage1_trainset[stack_fold==i,])
+      predict(fit3, newdata = trainset[stack_fold==i,])
+    stage1_cv_pred_mat[stack_fold==i,4] <-
+      predict(fit4, newdata = trainset[stack_fold==i,])
     
     stage1_test_pred_list[[1]][,i] <- 
-      predict(fit1, newx = apply(as.matrix(stage1_testx),
-                                 2, scale),
+      predict(fit1,
+              newx = apply(as.matrix(testx),
+                           2, scale),
               s = "lambda.1se")
     stage1_test_pred_list[[2]][,i] <- 
-      predict(fit2, newdata = stage1_testx)
+      predict(fit2, newdata = testset)
     stage1_test_pred_list[[3]][,i] <- 
-      predict(fit3, newdata = stage1_testx)
+      predict(fit3, newdata = testset)
+    stage1_test_pred_list[[4]][,i] <- 
+      predict(fit4, newdata = testset)
   }
   
-  stage1_test_pred_mat <- 
+  stage1_test_pred_mat <-
     lapply(stage1_test_pred_list, function(t) apply(t, 1, mean))
   stage1_test_pred_mat <-
     sapply(stage1_test_pred_mat, identity)
@@ -253,10 +331,6 @@ stack331 <- function(trainset, testset) {
   
   return(apply(last_pred_mat, 1, mean))
 }
-
-exdata <- rename_and_reorder_columns(College, "Grad.Rate")
-exres <- stack331(exdata[1:700,], exdata[701:nrow(exdata),])
-RMSE(exdata[701:nrow(exdata),"y"], exres)
 ```
 
 ### 5-fold testing - stack331 model
@@ -279,6 +353,31 @@ stack331_5fold <- function(data) {
 }
 
 stack331_5fold(exdata)
+stack331_5fold(exdata2)
+```
+
+### 5-fold testing - stack41 model
+
+```{r}
+stack41_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    y_pred <- rep(0, nrow(validset))
+    y_pred <- stack41(trainset = trainset, testset = validset)
+    
+    performance[i] <- RMSE(y_actual = validset$y,
+                           y_pred = y_pred)
+  }
+  return(mean(performance))
+}
+
+stack41_5fold(exdata)
+stack41_5fold(exdata2)
+
 ```
 
 ### 5-fold testing - RF
@@ -293,7 +392,7 @@ RF_5fold <- function(data) {
     trainset <- data[fold!=i,]
     validset <- data[fold==i,]
     
-    fit <- randomForest(y~., data = trainset)
+    fit <- randomForest(y~., data = trainset, ntree=100)
     y_pred <- predict(fit, newdata = validset)
 
     performance[i] <- RMSE(validset$y, y_pred)
@@ -302,10 +401,32 @@ RF_5fold <- function(data) {
 }
 
 RF_5fold(exdata)
+RF_5fold(exdata2)
 ```
 
-```{r}
+### 5-fold testing - RF
 
+```{r}
+library(randomForest)
+
+RF_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    fit <- gbm(y~., data = trainset, n.trees = 200,
+               verbose = F)
+    y_pred <- predict(fit, newdata = validset)
+
+    performance[i] <- RMSE(validset$y, y_pred)
+  }
+  return(mean(performance))
+}
+
+RF_5fold(exdata)
+RF_5fold(exdata2)
 ```
 
 ```{r}
