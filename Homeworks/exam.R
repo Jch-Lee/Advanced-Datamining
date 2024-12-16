@@ -35,7 +35,7 @@ stack8.3.0 <- function(trainset, testset) {
     fit1 <- gbm(y~.,
                 data = trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 250,
+                n.trees = 500,
                 verbose = F,
                 shrinkage = 0.1)
     fit2 <- gbm(y~.,
@@ -54,16 +54,11 @@ stack8.3.0 <- function(trainset, testset) {
                 n.trees = 150,
                 verbose = F,
                 shrinkage = 0.08)
-    fit5 <- gbm(y~.,
-                data = trainset[stack_fold!=i,],
-                distribution = "gaussian",
-                n.trees = 100,
-                verbose = F,
-                shrinkage = 0.05)
-    fit6 <- randomForest(y~.,
+    fit5 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,],
-                         ntree = 100,
+                         ntree = 200,
                          do.trace=F)
+    fit6 <- lm(y~., data = trainset[stack_fold!=i,])
     fit7 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,],
                          ntree = 500,
@@ -131,19 +126,19 @@ stack8.3.0 <- function(trainset, testset) {
     fit1 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 180,
+                n.trees = 200,
                 verbose = F,
                 shrinkage = 0.05)
     fit2 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 200,
+                n.trees = 250,
                 verbose = F,
                 shrinkage = 0.05)
     fit3 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 220,
+                n.trees = 150,
                 verbose = F,
                 shrinkage = 0.05)
     

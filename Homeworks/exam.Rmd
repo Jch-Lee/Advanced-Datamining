@@ -137,9 +137,9 @@ testset$V11 <- log(testset$V11+1e-10)
 trainset <- rename_and_reorder_columns(trainset, "y")
 colnames(testset) <- colnames(trainset)[colnames(trainset)!="y"]
 
-plot_distributions(trainset)
-plot_distributions(testset)
+
 library(randomForest)
+library(gbm)
 stack8.3.0_5fold(trainset)
 ```
 
@@ -173,6 +173,37 @@ library(randomForest)
 ```
 
 ```{r}
+```
+
+### SVM
+
+```{r}
+library(e1071)
+
+SVM_5fold <- function(data) {
+  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
+  performance <- rep(0, max(fold))
+  for (i in 1:max(fold)) {
+    trainset <- data[fold!=i,]
+    validset <- data[fold==i,]
+    
+    trainset <- apply(trainset, 2, as.numeric)
+    validset <- apply(validset, 2, as.numeric)
+    
+    # SVM 회귀 모델 생성
+    svm_model <- svm(trainset[,-ncol(trainset)],
+                     trainset[,ncol(trainset)],
+                     type = "eps-regression", kernel = "radial")
+    # 모델 예측
+    y_pred <- predict(svm_model, validset[,-ncol(validset)])
+
+    performance[i] <- RMSE(validset[,ncol(validset)], y_pred)
+  }
+  plot(performance, type="l")
+  return(mean(performance))
+}
+
+SVM_5fold(trainset)
 ```
 
 ### 5-fold testing - RF
@@ -1480,7 +1511,7 @@ stack8.3.0 <- function(trainset, testset) {
     fit1 <- gbm(y~.,
                 data = trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 250,
+                n.trees = 500,
                 verbose = F,
                 shrinkage = 0.1)
     fit2 <- gbm(y~.,
@@ -1499,16 +1530,11 @@ stack8.3.0 <- function(trainset, testset) {
                 n.trees = 150,
                 verbose = F,
                 shrinkage = 0.08)
-    fit5 <- gbm(y~.,
-                data = trainset[stack_fold!=i,],
-                distribution = "gaussian",
-                n.trees = 100,
-                verbose = F,
-                shrinkage = 0.05)
-    fit6 <- randomForest(y~.,
+    fit5 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,],
-                         ntree = 100,
+                         ntree = 200,
                          do.trace=F)
+    fit6 <- lm(y~., data = trainset[stack_fold!=i,])
     fit7 <- randomForest(y~.,
                          data = trainset[stack_fold!=i,],
                          ntree = 500,
@@ -1576,7 +1602,7 @@ stack8.3.0 <- function(trainset, testset) {
     fit1 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 150,
+                n.trees = 200,
                 verbose = F,
                 shrinkage = 0.05)
     fit2 <- gbm(y~.,
@@ -1588,7 +1614,7 @@ stack8.3.0 <- function(trainset, testset) {
     fit3 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 200,
+                n.trees = 150,
                 verbose = F,
                 shrinkage = 0.05)
     
