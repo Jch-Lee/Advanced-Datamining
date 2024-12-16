@@ -6,7 +6,8 @@ date: "2024-12-15"
 ### Data
 
 ```{r}
-load("C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/exam.Rdata")
+#load("C:/Users/USER/Desktop/Semester2/Advanced-Datamining/Homeworks/exam.Rdata")
+load("C:/Users/jongcheol/OneDrive/바탕 화면/Semester2/Advanced-Datamining/Homeworks/exam.Rdata")
 ```
 
 ```{r}
@@ -116,9 +117,6 @@ target_encoding <- function(train, test, factor_columns, target_column) {
 }
 ```
 
-```{r}
-plot_distributions(x.train)
-```
 
 ```{r}
 cor(x.train[,-c(6,8,9,10,12)])
@@ -129,14 +127,27 @@ cor(apply(x.train, 2, as.numeric))
 trainset <- data.frame(x.train, y=y.train)
 testset <- data.frame(x.test)
 
-trainset$V1 <- log(trainset$V1+1e-10)
+trainset$V1 <- log(log(trainset$V1+1e-10))
 trainset$V4 <- log(trainset$V4+1e-10)
-trainset$V7 <- log(trainset$V7+1e-10)
 trainset$V11 <- log(trainset$V11+1e-10)
+testset$V1 <- log(log(testset$V1+1e-10))
+testset$V4 <- log(testset$V4+1e-10)
+testset$V11 <- log(testset$V11+1e-10)
 
 trainset <- rename_and_reorder_columns(trainset, "y")
 colnames(testset) <- colnames(trainset)[colnames(trainset)!="y"]
 
+plot_distributions(trainset)
+plot_distributions(testset)
+library(randomForest)
+stack8.3.0_5fold(trainset)
+```
+
+```{r}
+boxplot(trainset$y[trainset$X10==1],
+        trainset$y[trainset$X10==2],
+        trainset$y[trainset$X10==3],
+        trainset$y[trainset$X10==4])
 ```
 
 ### Performances
@@ -188,22 +199,33 @@ RF_5fold(trainset)
 ```
 
 ```{r}
-LM_5fold <- function(data) {
-  fold <- sample(rep(1:5, nrow(data)%/%5+1), size=nrow(data)) # 성능 평가를 위한 폴드
-  performance <- rep(0, max(fold))
-  for (i in 1:max(fold)) {
-    trainset <- data[fold!=i,]
-    validset <- data[fold==i,]
+NN_5fold <- function(data, size=5, maxit=500) {
+  library(nnet)
+  
+  # 5-폴드 인덱스 생성
+  fold <- sample(rep(1:5, length.out=nrow(data)))
+  
+  performance <- numeric(5)
+  for (i in 1:5) {
+    trainset <- data[fold != i, -c(6,8,9,10,12)]
+    validset <- data[fold == i, -c(6,8,9,10,12)]
     
-    fit <- lm(y~., data = trainset)
-    y_pred <- predict(fit, newdata = validset)
-
+    # nnet 사용, 회귀 문제이므로 linout=TRUE
+    # size = 은닉층 뉴런 수, maxit=최대 반복 횟수
+    fit <- nnet(y ~ ., data=trainset, size=30, linout=TRUE,
+                maxit=100, trace=FALSE)
+    
+    # 예측
+    y_pred <- predict(fit, newdata=validset)
+    
+    # RMSE 계산
     performance[i] <- RMSE(validset$y, y_pred)
   }
+  
   return(mean(performance))
 }
 
-LM_5fold(trainset)
+NN_5fold(trainset)
 ```
 
 ### 5-fold testing - GBM
@@ -1548,6 +1570,8 @@ stack8.3.0 <- function(trainset, testset) {
                                   function(x) matrix(0, nrow = nrow(testset),
                                                      ncol = max(stack_fold)))
   
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  
   for (i in 1:max(stack_fold)) {
     fit1 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
@@ -1629,6 +1653,7 @@ stack8.3.0_5fold <- function(data) {
     performance[i] <- RMSE(y_actual = y_act,
                            y_pred = y_pred)
   }
+  plot(performance, type="l")
   return(mean(performance))
 }
 

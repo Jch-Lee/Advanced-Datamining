@@ -125,23 +125,25 @@ stack8.3.0 <- function(trainset, testset) {
                                   function(x) matrix(0, nrow = nrow(testset),
                                                      ncol = max(stack_fold)))
   
+  stack_fold <- sample(rep(1:5, nrow(trainset)%/%5+1), size=nrow(trainset))
+  
   for (i in 1:max(stack_fold)) {
     fit1 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 150,
+                n.trees = 180,
                 verbose = F,
                 shrinkage = 0.05)
     fit2 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 250,
+                n.trees = 200,
                 verbose = F,
                 shrinkage = 0.05)
     fit3 <- gbm(y~.,
                 data = stage2_trainset[stack_fold!=i,],
                 distribution = "gaussian",
-                n.trees = 200,
+                n.trees = 220,
                 verbose = F,
                 shrinkage = 0.05)
     
@@ -167,7 +169,6 @@ stack8.3.0 <- function(trainset, testset) {
   
   stack_pred <- apply(stage2_test_pred_mat, 1, mean)
   
-  ### bagging with single boosting models
   gbm1 <- gbm(y~., data = trainset,
               verbose = F, n.trees = 220,
               shrinkage = 0.05,
@@ -191,14 +192,18 @@ stack8.3.0 <- function(trainset, testset) {
   return(final_pred)
 }
 
+
 main <- function(x.train, y.train, x.test) {
   trainset <- data.frame(x.train, y=y.train)
   testset <- data.frame(x.test)
   
-  trainset$V1 <- log(trainset$V1+1e-10)
+  trainset$V1 <- log(log(trainset$V1+1e-10))
   trainset$V4 <- log(trainset$V4+1e-10)
-  trainset$V7 <- log(trainset$V7+1e-10)
   trainset$V11 <- log(trainset$V11+1e-10)
+  
+  testset$V1 <- log(log(testset$V1+1e-10))
+  testset$V4 <- log(testset$V4+1e-10)
+  testset$V11 <- log(testset$V11+1e-10)
   
   trainset <- rename_and_reorder_columns(trainset, "y")
   colnames(testset) <- colnames(trainset)[colnames(trainset)!="y"]
@@ -206,3 +211,5 @@ main <- function(x.train, y.train, x.test) {
   y <- stack8.3.0(trainset = trainset, testset = testset)
   return(y)
 }
+
+# main(x.train, y.train, x.test)
