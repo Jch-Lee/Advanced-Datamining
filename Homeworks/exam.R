@@ -1,5 +1,4 @@
 ### 202482123 이종철
-
 library(gbm)
 library(randomForest)
 
@@ -206,5 +205,3 @@ main <- function(x.train, y.train, x.test) {
   y <- stack8.3.0(trainset = trainset, testset = testset)
   return(y)
 }
-
-# main(x.train, y.train, x.test)
